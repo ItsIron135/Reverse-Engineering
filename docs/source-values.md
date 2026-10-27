@@ -65,6 +65,11 @@ What carries over to Roblox:
 - **Motion blur** (derived formula): Unreal scales screen velocity to `MotionBlurTargetFPS` 30 and blurs half of it each way (`VelocityScale = TimeScale * Amount * 0.5`), capped at `MotionBlurMax` 100% of the screen. The same radius is computed from the camera's rotation each frame and combined with the depth-of-field radius. Roblox blurs uniformly rather than along the motion, and caps the radius at 56 px.
 - **Sun colour**: Map6's directional light is 4687 K; `Lighting.ColorShift_Top` is set to that colour temperature.
 
+- **Sky (level 0)**: the level's sky is the cube map `/Game/Textures/mud_road_puresky_2kColorGrad` (1024² per face, half-float HDR), a colour-graded version of Poly Haven's "mud_road_puresky". `tools/extract_cubemap_faces.py` decodes it and maps the 99.5th-percentile luminance to white; the faces were rotated to stand upright, mirrored for Roblox's skybox convention and checked for seams in Studio (sides and top verified; the bottom face is hidden by the ground and its rotation is unverified). Other levels use different skies: Map6 a cloud texture on cloud planes, Map4 three background cloud textures plus SkyAtmosphere, Map7 cartoon cloud meshes.
+- **Film grain**: the engine's own `Marcie_Grain_v3_128_M2_000` texture, tiled at the game's `FilmGrainTexelSize` 0.768 (98 px per tile) and moved to a random offset every frame. Unreal multiplies the image by it at full strength in deep shadows and 1.2% in midtones; an overlay cannot multiply, so `tools/make_grain_overlay.py` turns it into light/dark specks and `FilmGrainStrength` (0.12) sets the opacity, which is estimated.
+- **DigiClamp** (decoded, not ported): its pixel shader clamps each colour channel to [0.05, 0.8] and blends toward a constant colour. Roblox has no per-pixel clamp, so it is not reproduced.
+- **Resolution**: the game renders at 100% (`sg.ResolutionQuality=100`, TSR history 100%). Its rough, "low-res" look comes from Sharpen2 (intensity 5 over a 5-pixel offset, which draws the bright halos around silhouettes), chromatic aberration 1.56, heavy bloom and grain, not from a lower render resolution. Roblox cannot sharpen or split channels per pixel.
+
 What does not carry over: Lumen GI, local exposure, chromatic aberration, lens distortion, sharpening, DigiClamp and the source's film grain.
 
 ## Source textures

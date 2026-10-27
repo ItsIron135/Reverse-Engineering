@@ -14,6 +14,7 @@ local IMAGES = {
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
 	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
+	FilmGrainImage = "rbxassetid://78872525385427", -- Marcie_Grain_v3_128_M2_000 converted by tools/make_grain_overlay.py
 }
 
 local MODULES = {
@@ -89,6 +90,8 @@ for name, value in {
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
 	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
+	FilmGrainEnabled = true,
+	FilmGrainStrength = 0.12, -- overlay opacity; the source applies grain at full strength only in deep shadows
 } do
 	folder:SetAttribute(name, value)
 end
@@ -146,7 +149,24 @@ bloom.Name = "YHP_Bloom"
 bloom.Threshold = 0 -- BloomThreshold keeps the engine default -1: no threshold
 bloom.Size = 56 -- widest Roblox radius; the source's widest kernel spans most of the screen
 bloom.Intensity = 1 -- source 250 is not in comparable units
-for _, effect in { grade, bloom } do
+-- Level 0 sky: the game's mud_road_puresky_2kColorGrad cube map, faces converted by
+-- tools/extract_cubemap_faces.py (side faces mirrored for Roblox's skybox convention).
+local oldSky = Lighting:FindFirstChildOfClass("Sky")
+if oldSky then
+	oldSky.Parent = backup:FindFirstChild("OriginalLightingEffects") or backup
+end
+local sky = Instance.new("Sky")
+sky.Name = "YHP_Level0Sky"
+sky.SkyboxFt = "rbxassetid://100264281804965"
+sky.SkyboxRt = "rbxassetid://85329701483424"
+sky.SkyboxBk = "rbxassetid://84410854009063"
+sky.SkyboxLf = "rbxassetid://121166612591163"
+sky.SkyboxUp = "rbxassetid://134574778259308"
+sky.SkyboxDn = "rbxassetid://102060416831931"
+sky.CelestialBodiesShown = false
+sky.StarCount = 0
+
+for _, effect in { grade, bloom, sky } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting
 end

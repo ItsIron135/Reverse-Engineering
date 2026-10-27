@@ -21,7 +21,10 @@
           "LensDirtMax": 0.7,
           "MotionBlurEnabled": true,
           "MotionBlurAmount": 1,
-          "DepthOfFieldScale": 1
+          "DepthOfFieldScale": 1,
+          "FilmGrainImage": "rbxassetid://78872525385427",
+          "FilmGrainEnabled": true,
+          "FilmGrainStrength": 0.12
         }
       }
     },

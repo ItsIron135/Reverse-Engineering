@@ -14,6 +14,7 @@ local IMAGES = {
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
 	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
+	FilmGrainImage = "rbxassetid://78872525385427", -- Marcie_Grain_v3_128_M2_000 converted by tools/make_grain_overlay.py
 }
 
 local MODULES = {
@@ -95,6 +96,7 @@ return {
 	MotionBlurAmount = 1,
 	MotionBlurMax = 100, -- percent of screen
 	MotionBlurTargetFPS = 30, -- engine default, not overridden
+	FilmGrainTexelSize = 0.768, -- grain texel size in screen pixels
 
 	-- Map6 DirectionalLight
 	SunTemperature = 4687.2,
@@ -412,6 +414,7 @@ return Movement
 --     defocused by a near-constant amount, so it becomes a constant blur radius.
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
+--   * film grain: Unreal's own grain texture, tiled at FilmGrainTexelSize and re-placed every frame.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -431,10 +434,19 @@ function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	dirt.ZIndex = 1
 	dirt.Parent = gui
 
+	-- Oversized by one tile so a random per-frame offset never exposes an edge
+	local grain = Instance.new("ImageLabel")
+	grain.Name = "FilmGrain"
+	grain.BackgroundTransparency = 1
+	grain.ScaleType = Enum.ScaleType.Tile
+	grain.ZIndex = 3
+	grain.Parent = gui
+
 	return setmetatable({
 		settings = settings,
 		config = config,
 		dirt = dirt,
+		grain = grain,
 		blur = nil,
 		glare = 0,
 		lights = {},
@@ -511,6 +523,19 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
+	-- Film grain
+	local grainImage = self.settings:GetAttribute("FilmGrainImage")
+	local grainOn = self:_setting("FilmGrainEnabled", true) and grainImage ~= nil and grainImage ~= ""
+	self.grain.Visible = grainOn
+	if grainOn then
+		local tile = 128 * self.config.FilmGrainTexelSize
+		self.grain.Image = grainImage
+		self.grain.TileSize = UDim2.fromOffset(tile, tile)
+		self.grain.Size = UDim2.new(1, tile, 1, tile)
+		self.grain.Position = UDim2.fromOffset(-math.random() * tile, -math.random() * tile)
+		self.grain.ImageTransparency = 1 - self:_setting("FilmGrainStrength", 0.12)
+	end
+
 	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
 		if self.blur then
@@ -545,6 +570,7 @@ end
 
 function LensEffects:Release()
 	self.dirt.Visible = false
+	self.grain.Visible = false
 	self.lastRotation = nil
 	if self.blur then
 		self.blur.Enabled = false
@@ -968,6 +994,8 @@ for name, value in {
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
 	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
+	FilmGrainEnabled = true,
+	FilmGrainStrength = 0.12, -- overlay opacity; the source applies grain at full strength only in deep shadows
 } do
 	folder:SetAttribute(name, value)
 end
@@ -1025,7 +1053,24 @@ bloom.Name = "YHP_Bloom"
 bloom.Threshold = 0 -- BloomThreshold keeps the engine default -1: no threshold
 bloom.Size = 56 -- widest Roblox radius; the source's widest kernel spans most of the screen
 bloom.Intensity = 1 -- source 250 is not in comparable units
-for _, effect in { grade, bloom } do
+-- Level 0 sky: the game's mud_road_puresky_2kColorGrad cube map, faces converted by
+-- tools/extract_cubemap_faces.py (side faces mirrored for Roblox's skybox convention).
+local oldSky = Lighting:FindFirstChildOfClass("Sky")
+if oldSky then
+	oldSky.Parent = backup:FindFirstChild("OriginalLightingEffects") or backup
+end
+local sky = Instance.new("Sky")
+sky.Name = "YHP_Level0Sky"
+sky.SkyboxFt = "rbxassetid://100264281804965"
+sky.SkyboxRt = "rbxassetid://85329701483424"
+sky.SkyboxBk = "rbxassetid://84410854009063"
+sky.SkyboxLf = "rbxassetid://121166612591163"
+sky.SkyboxUp = "rbxassetid://134574778259308"
+sky.SkyboxDn = "rbxassetid://102060416831931"
+sky.CelestialBodiesShown = false
+sky.StarCount = 0
+
+for _, effect in { grade, bloom, sky } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting
 end

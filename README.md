@@ -35,5 +35,6 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | MotionBlurEnabled | true | Blur while the camera turns |
 | MotionBlurAmount | 1 | Source MotionBlurAmount |
 | DepthOfFieldScale | 1 | Multiplier on the source depth-of-field blur |
+| FilmGrainEnabled / FilmGrainStrength | true / 0.12 | Film grain overlay and its opacity |
 
 Controls match the source: WASD or arrow keys to move, LeftShift to run (only while moving forward), mouse to look, no jump.

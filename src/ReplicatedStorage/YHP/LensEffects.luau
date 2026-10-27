@@ -5,6 +5,7 @@
 --     defocused by a near-constant amount, so it becomes a constant blur radius.
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
+--   * film grain: Unreal's own grain texture, tiled at FilmGrainTexelSize and re-placed every frame.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -24,10 +25,19 @@ function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	dirt.ZIndex = 1
 	dirt.Parent = gui
 
+	-- Oversized by one tile so a random per-frame offset never exposes an edge
+	local grain = Instance.new("ImageLabel")
+	grain.Name = "FilmGrain"
+	grain.BackgroundTransparency = 1
+	grain.ScaleType = Enum.ScaleType.Tile
+	grain.ZIndex = 3
+	grain.Parent = gui
+
 	return setmetatable({
 		settings = settings,
 		config = config,
 		dirt = dirt,
+		grain = grain,
 		blur = nil,
 		glare = 0,
 		lights = {},
@@ -104,6 +114,19 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
+	-- Film grain
+	local grainImage = self.settings:GetAttribute("FilmGrainImage")
+	local grainOn = self:_setting("FilmGrainEnabled", true) and grainImage ~= nil and grainImage ~= ""
+	self.grain.Visible = grainOn
+	if grainOn then
+		local tile = 128 * self.config.FilmGrainTexelSize
+		self.grain.Image = grainImage
+		self.grain.TileSize = UDim2.fromOffset(tile, tile)
+		self.grain.Size = UDim2.new(1, tile, 1, tile)
+		self.grain.Position = UDim2.fromOffset(-math.random() * tile, -math.random() * tile)
+		self.grain.ImageTransparency = 1 - self:_setting("FilmGrainStrength", 0.12)
+	end
+
 	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
 		if self.blur then
@@ -138,6 +161,7 @@ end
 
 function LensEffects:Release()
 	self.dirt.Visible = false
+	self.grain.Visible = false
 	self.lastRotation = nil
 	if self.blur then
 		self.blur.Enabled = false
