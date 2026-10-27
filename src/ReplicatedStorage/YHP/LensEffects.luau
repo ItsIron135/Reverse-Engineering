@@ -1,9 +1,10 @@
 -- Screen-space parts of the source camera look that Roblox has no post-process for:
 --   * lens dirt: Unreal adds lensDirt11 on top of bloom, so it shows where bright light is in view.
 --     Here its opacity follows how directly the camera faces the sun and nearby lights.
---   * motion blur: Unreal blurs along per-pixel motion (MotionBlurAmount 1 = a full-frame shutter).
---     Roblox only has a uniform BlurEffect, sized from the camera's angular motion this frame.
---   * a constant base softness standing in for the source's soft, low-detail image.
+--   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
+--     defocused by a near-constant amount, so it becomes a constant blur radius.
+--   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
+--     its radius follows the camera's rotation using Unreal's velocity scaling.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -13,7 +14,7 @@ LensEffects.__index = LensEffects
 local LIGHT_SCAN_INTERVAL = 1
 local LIGHT_RANGE = 150
 
-function LensEffects.new(settings: Instance, gui: ScreenGui)
+function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	local dirt = Instance.new("ImageLabel")
 	dirt.Name = "LensDirt"
 	dirt.Size = UDim2.fromScale(1, 1)
@@ -25,6 +26,7 @@ function LensEffects.new(settings: Instance, gui: ScreenGui)
 
 	return setmetatable({
 		settings = settings,
+		config = config,
 		dirt = dirt,
 		blur = nil,
 		glare = 0,
@@ -102,7 +104,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
-	-- Motion blur and base softness
+	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
 		if self.blur then
 			self.blur:Destroy()
@@ -111,18 +113,26 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.blur.Name = "YHP_MotionBlur"
 		self.blur.Parent = camera
 	end
-	local size = self:_setting("BaseBlur", 1.5)
+	local c = self.config
+	local width = camera.ViewportSize.X
+	-- Thin-lens circle of confusion for a subject at infinity. The source focuses at 40 cm, so
+	-- anything past about a metre is close to this size.
+	local focalLength = (c.DepthOfFieldSensorWidth / 2) / math.tan(math.rad(c.HorizontalFOV / 2))
+	local focus = c.DepthOfFieldFocalDistance * 10
+	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
+	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("DepthOfFieldScale", 1)
+	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
 		local _, angle = (self.lastRotation:Inverse() * rotation):ToAxisAngle()
-		local viewport = camera.ViewportSize
-		local pixelsPerRadian = viewport.X / (2 * math.tan(math.rad(camera.MaxAxisFieldOfView / 2)))
-		-- Streak length over one frame; a Gaussian of about half that radius reads similarly.
-		local streak = math.abs(angle) * pixelsPerRadian * self:_setting("MotionBlurAmount", 1)
-		size += math.min(streak * 0.5, self:_setting("MotionBlurMax", 14))
+		local pixelsPerRadian = width / (2 * math.tan(math.rad(c.HorizontalFOV / 2)))
+		-- Unreal scales velocity to MotionBlurTargetFPS and blurs half of it each way.
+		local pixelsPerSecond = math.abs(angle) / dt * pixelsPerRadian
+		motionRadius = 0.5 * self:_setting("MotionBlurAmount", c.MotionBlurAmount) * pixelsPerSecond / c.MotionBlurTargetFPS
+		motionRadius = math.min(motionRadius, width * 0.5 * c.MotionBlurMax / 100)
 	end
 	self.lastRotation = rotation
-	self.blur.Size = size
+	self.blur.Size = math.min(math.sqrt(focusRadius ^ 2 + motionRadius ^ 2), 56)
 	self.blur.Enabled = true
 end
 

@@ -69,6 +69,12 @@ return {
 		SceneFringeIntensity = 1.56,
 		DepthOfFieldFocalDistance = 40,
 	},
+	DepthOfFieldFocalDistance = 40, -- cm
+	DepthOfFieldSensorWidth = 30, -- mm
+	DepthOfFieldFstop = 4, -- engine default, not overridden
+	MotionBlurAmount = 1,
+	MotionBlurMax = 100, -- percent of screen
+	MotionBlurTargetFPS = 30, -- engine default, not overridden
 
 	-- Map6 DirectionalLight
 	SunTemperature = 4687.2,

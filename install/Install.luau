@@ -89,6 +89,12 @@ return {
 		SceneFringeIntensity = 1.56,
 		DepthOfFieldFocalDistance = 40,
 	},
+	DepthOfFieldFocalDistance = 40, -- cm
+	DepthOfFieldSensorWidth = 30, -- mm
+	DepthOfFieldFstop = 4, -- engine default, not overridden
+	MotionBlurAmount = 1,
+	MotionBlurMax = 100, -- percent of screen
+	MotionBlurTargetFPS = 30, -- engine default, not overridden
 
 	-- Map6 DirectionalLight
 	SunTemperature = 4687.2,
@@ -402,9 +408,10 @@ return Movement
 -- Screen-space parts of the source camera look that Roblox has no post-process for:
 --   * lens dirt: Unreal adds lensDirt11 on top of bloom, so it shows where bright light is in view.
 --     Here its opacity follows how directly the camera faces the sun and nearby lights.
---   * motion blur: Unreal blurs along per-pixel motion (MotionBlurAmount 1 = a full-frame shutter).
---     Roblox only has a uniform BlurEffect, sized from the camera's angular motion this frame.
---   * a constant base softness standing in for the source's soft, low-detail image.
+--   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
+--     defocused by a near-constant amount, so it becomes a constant blur radius.
+--   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
+--     its radius follows the camera's rotation using Unreal's velocity scaling.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -414,7 +421,7 @@ LensEffects.__index = LensEffects
 local LIGHT_SCAN_INTERVAL = 1
 local LIGHT_RANGE = 150
 
-function LensEffects.new(settings: Instance, gui: ScreenGui)
+function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	local dirt = Instance.new("ImageLabel")
 	dirt.Name = "LensDirt"
 	dirt.Size = UDim2.fromScale(1, 1)
@@ -426,6 +433,7 @@ function LensEffects.new(settings: Instance, gui: ScreenGui)
 
 	return setmetatable({
 		settings = settings,
+		config = config,
 		dirt = dirt,
 		blur = nil,
 		glare = 0,
@@ -503,7 +511,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
-	-- Motion blur and base softness
+	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
 		if self.blur then
 			self.blur:Destroy()
@@ -512,18 +520,26 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.blur.Name = "YHP_MotionBlur"
 		self.blur.Parent = camera
 	end
-	local size = self:_setting("BaseBlur", 1.5)
+	local c = self.config
+	local width = camera.ViewportSize.X
+	-- Thin-lens circle of confusion for a subject at infinity. The source focuses at 40 cm, so
+	-- anything past about a metre is close to this size.
+	local focalLength = (c.DepthOfFieldSensorWidth / 2) / math.tan(math.rad(c.HorizontalFOV / 2))
+	local focus = c.DepthOfFieldFocalDistance * 10
+	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
+	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("DepthOfFieldScale", 1)
+	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
 		local _, angle = (self.lastRotation:Inverse() * rotation):ToAxisAngle()
-		local viewport = camera.ViewportSize
-		local pixelsPerRadian = viewport.X / (2 * math.tan(math.rad(camera.MaxAxisFieldOfView / 2)))
-		-- Streak length over one frame; a Gaussian of about half that radius reads similarly.
-		local streak = math.abs(angle) * pixelsPerRadian * self:_setting("MotionBlurAmount", 1)
-		size += math.min(streak * 0.5, self:_setting("MotionBlurMax", 14))
+		local pixelsPerRadian = width / (2 * math.tan(math.rad(c.HorizontalFOV / 2)))
+		-- Unreal scales velocity to MotionBlurTargetFPS and blurs half of it each way.
+		local pixelsPerSecond = math.abs(angle) / dt * pixelsPerRadian
+		motionRadius = 0.5 * self:_setting("MotionBlurAmount", c.MotionBlurAmount) * pixelsPerSecond / c.MotionBlurTargetFPS
+		motionRadius = math.min(motionRadius, width * 0.5 * c.MotionBlurMax / 100)
 	end
 	self.lastRotation = rotation
-	self.blur.Size = size
+	self.blur.Size = math.min(math.sqrt(focusRadius ^ 2 + motionRadius ^ 2), 56)
 	self.blur.Enabled = true
 end
 
@@ -661,7 +677,7 @@ vignette.ScaleType = Enum.ScaleType.Stretch
 vignette.ZIndex = 2
 vignette.Parent = vignetteGui
 vignetteGui.Parent = player:WaitForChild("PlayerGui")
-local lens = LensEffects.new(YHP, vignetteGui)
+local lens = LensEffects.new(YHP, vignetteGui, Config)
 
 local function setHidden(hidden)
 	if hidden and character then
@@ -951,8 +967,7 @@ for name, value in {
 	LensDirtMax = 0.7, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	MotionBlurMax = 14,
-	BaseBlur = 1.5, -- constant softness
+	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
 } do
 	folder:SetAttribute(name, value)
 end
@@ -994,27 +1009,23 @@ local function kelvinToColor(kelvin)
 end
 Lighting.ColorShift_Top = kelvinToColor(4687.2)
 
--- Darker, contrasty image with blown-out lights: the source's contrast 1.2, exposure bias well
--- below neutral and bloom 250 with a low threshold.
-Lighting.ExposureCompensation = -0.6
+-- Values derived by tools/fit_color_grade.py and docs/source-values.md.
+-- Exposure: the game clamps auto exposure at EV100 0 with bias -8.84, a fixed exposure that needs
+-- about 100 cd/m2 for middle grey. Map6's 20 lux sun leaves lit surfaces ~5.7 stops under a normal
+-- auto exposure; Roblox's lowest setting is -3.
+Lighting.ExposureCompensation = -3
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
-grade.Contrast = 0.35
-grade.Brightness = -0.04
-grade.Saturation = -0.08
-grade.TintColor = Color3.fromRGB(255, 250, 242)
+grade.Contrast = -0.088 -- fit of ColorContrast 1.2 + shadow/midtone gamma 1.48 + FilmWhiteClip 1
+grade.Brightness = 0.113
+grade.Saturation = 0 -- ColorSaturation is not overridden
+grade.TintColor = Color3.new(1, 1, 1) -- WhiteTemp 6500 K is the neutral point
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
-bloom.Intensity = 2
-bloom.Size = 56
-bloom.Threshold = 0.7
-local depth = Instance.new("DepthOfFieldEffect")
-depth.Name = "YHP_LensDepth"
-depth.FocusDistance = 40 / 28 -- DepthOfFieldFocalDistance 40 cm
-depth.InFocusRadius = 1
-depth.NearIntensity = 0
-depth.FarIntensity = 0.3
-for _, effect in { grade, bloom, depth } do
+bloom.Threshold = 0 -- BloomThreshold keeps the engine default -1: no threshold
+bloom.Size = 56 -- widest Roblox radius; the source's widest kernel spans most of the screen
+bloom.Intensity = 1 -- source 250 is not in comparable units
+for _, effect in { grade, bloom } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting
 end

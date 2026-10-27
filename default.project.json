@@ -21,8 +21,7 @@
           "LensDirtMax": 0.7,
           "MotionBlurEnabled": true,
           "MotionBlurAmount": 1,
-          "MotionBlurMax": 14,
-          "BaseBlur": 1.5
+          "DepthOfFieldScale": 1
         }
       }
     },

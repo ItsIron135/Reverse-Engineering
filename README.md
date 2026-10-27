@@ -33,7 +33,7 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | LensDirtEnabled | true | Show the lens-smudge overlay |
 | LensDirtBase / LensDirtMax | 0.12 / 0.7 | Smudge opacity with no light in view / facing a bright light |
 | MotionBlurEnabled | true | Blur while the camera turns |
-| MotionBlurAmount / MotionBlurMax | 1 / 14 | Turn-blur strength and cap |
-| BaseBlur | 1.5 | Constant softness |
+| MotionBlurAmount | 1 | Source MotionBlurAmount |
+| DepthOfFieldScale | 1 | Multiplier on the source depth-of-field blur |
 
 Controls match the source: WASD or arrow keys to move, LeftShift to run (only while moving forward), mouse to look, no jump.

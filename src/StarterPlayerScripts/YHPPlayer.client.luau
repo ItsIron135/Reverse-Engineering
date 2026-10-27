@@ -119,7 +119,7 @@ vignette.ScaleType = Enum.ScaleType.Stretch
 vignette.ZIndex = 2
 vignette.Parent = vignetteGui
 vignetteGui.Parent = player:WaitForChild("PlayerGui")
-local lens = LensEffects.new(YHP, vignetteGui)
+local lens = LensEffects.new(YHP, vignetteGui, Config)
 
 local function setHidden(hidden)
 	if hidden and character then

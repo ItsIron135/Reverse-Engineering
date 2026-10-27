@@ -88,8 +88,7 @@ for name, value in {
 	LensDirtMax = 0.7, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	MotionBlurMax = 14,
-	BaseBlur = 1.5, -- constant softness
+	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
 } do
 	folder:SetAttribute(name, value)
 end
@@ -131,27 +130,23 @@ local function kelvinToColor(kelvin)
 end
 Lighting.ColorShift_Top = kelvinToColor(4687.2)
 
--- Darker, contrasty image with blown-out lights: the source's contrast 1.2, exposure bias well
--- below neutral and bloom 250 with a low threshold.
-Lighting.ExposureCompensation = -0.6
+-- Values derived by tools/fit_color_grade.py and docs/source-values.md.
+-- Exposure: the game clamps auto exposure at EV100 0 with bias -8.84, a fixed exposure that needs
+-- about 100 cd/m2 for middle grey. Map6's 20 lux sun leaves lit surfaces ~5.7 stops under a normal
+-- auto exposure; Roblox's lowest setting is -3.
+Lighting.ExposureCompensation = -3
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
-grade.Contrast = 0.35
-grade.Brightness = -0.04
-grade.Saturation = -0.08
-grade.TintColor = Color3.fromRGB(255, 250, 242)
+grade.Contrast = -0.088 -- fit of ColorContrast 1.2 + shadow/midtone gamma 1.48 + FilmWhiteClip 1
+grade.Brightness = 0.113
+grade.Saturation = 0 -- ColorSaturation is not overridden
+grade.TintColor = Color3.new(1, 1, 1) -- WhiteTemp 6500 K is the neutral point
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
-bloom.Intensity = 2
-bloom.Size = 56
-bloom.Threshold = 0.7
-local depth = Instance.new("DepthOfFieldEffect")
-depth.Name = "YHP_LensDepth"
-depth.FocusDistance = 40 / 28 -- DepthOfFieldFocalDistance 40 cm
-depth.InFocusRadius = 1
-depth.NearIntensity = 0
-depth.FarIntensity = 0.3
-for _, effect in { grade, bloom, depth } do
+bloom.Threshold = 0 -- BloomThreshold keeps the engine default -1: no threshold
+bloom.Size = 56 -- widest Roblox radius; the source's widest kernel spans most of the screen
+bloom.Intensity = 1 -- source 250 is not in comparable units
+for _, effect in { grade, bloom } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting
 end
