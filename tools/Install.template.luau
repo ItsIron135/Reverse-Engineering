@@ -15,6 +15,7 @@ local IMAGES = {
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
 	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
 	FilmGrainImage = "rbxassetid://78872525385427", -- Marcie_Grain_v3_128_M2_000 converted by tools/make_grain_overlay.py
+	LowResGridImage = "rbxassetid://117687923778338", -- assets/pixelgrid.png
 }
 
 local MODULES = {
@@ -92,6 +93,9 @@ for name, value in {
 	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
 	FilmGrainEnabled = true,
 	FilmGrainStrength = 0.12, -- overlay opacity; the source applies grain at full strength only in deep shadows
+	LowResEnabled = true, -- approximation, not a source setting
+	LowResPixelSize = 3,
+	LowResGridStrength = 0.22,
 } do
 	folder:SetAttribute(name, value)
 end

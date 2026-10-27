@@ -15,6 +15,7 @@ local IMAGES = {
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
 	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
 	FilmGrainImage = "rbxassetid://78872525385427", -- Marcie_Grain_v3_128_M2_000 converted by tools/make_grain_overlay.py
+	LowResGridImage = "rbxassetid://117687923778338", -- assets/pixelgrid.png
 }
 
 local MODULES = {
@@ -415,6 +416,8 @@ return Movement
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
 --   * film grain: Unreal's own grain texture, tiled at FilmGrainTexelSize and re-placed every frame.
+--   * low resolution (not from the source, which renders at 100%): a coarse pixel grid plus extra
+--     blur, standing in for the rough look its sharpening halos and colour fringing produce.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -442,11 +445,21 @@ function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	grain.ZIndex = 3
 	grain.Parent = gui
 
+	local pixelGrid = Instance.new("ImageLabel")
+	pixelGrid.Name = "LowResGrid"
+	pixelGrid.BackgroundTransparency = 1
+	pixelGrid.ScaleType = Enum.ScaleType.Tile
+	pixelGrid.ResampleMode = Enum.ResamplerMode.Pixelated
+	pixelGrid.Size = UDim2.fromScale(1, 1)
+	pixelGrid.ZIndex = 4
+	pixelGrid.Parent = gui
+
 	return setmetatable({
 		settings = settings,
 		config = config,
 		dirt = dirt,
 		grain = grain,
+		pixelGrid = pixelGrid,
 		blur = nil,
 		glare = 0,
 		lights = {},
@@ -536,6 +549,17 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.grain.ImageTransparency = 1 - self:_setting("FilmGrainStrength", 0.12)
 	end
 
+	-- Low-resolution approximation
+	local gridImage = self.settings:GetAttribute("LowResGridImage")
+	local lowRes = self:_setting("LowResEnabled", true) and gridImage ~= nil and gridImage ~= ""
+	local pixelSize = self:_setting("LowResPixelSize", 3)
+	self.pixelGrid.Visible = lowRes
+	if lowRes then
+		self.pixelGrid.Image = gridImage
+		self.pixelGrid.TileSize = UDim2.fromOffset(pixelSize, pixelSize)
+		self.pixelGrid.ImageTransparency = 1 - self:_setting("LowResGridStrength", 0.22)
+	end
+
 	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
 		if self.blur then
@@ -553,6 +577,9 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	local focus = c.DepthOfFieldFocalDistance * 10
 	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
 	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("DepthOfFieldScale", 1)
+	if lowRes then
+		focusRadius = math.sqrt(focusRadius ^ 2 + (pixelSize / 2) ^ 2)
+	end
 	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
@@ -571,6 +598,7 @@ end
 function LensEffects:Release()
 	self.dirt.Visible = false
 	self.grain.Visible = false
+	self.pixelGrid.Visible = false
 	self.lastRotation = nil
 	if self.blur then
 		self.blur.Enabled = false
@@ -996,6 +1024,9 @@ for name, value in {
 	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
 	FilmGrainEnabled = true,
 	FilmGrainStrength = 0.12, -- overlay opacity; the source applies grain at full strength only in deep shadows
+	LowResEnabled = true, -- approximation, not a source setting
+	LowResPixelSize = 3,
+	LowResGridStrength = 0.22,
 } do
 	folder:SetAttribute(name, value)
 end

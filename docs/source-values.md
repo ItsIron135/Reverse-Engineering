@@ -69,6 +69,7 @@ What carries over to Roblox:
 - **Film grain**: the engine's own `Marcie_Grain_v3_128_M2_000` texture, tiled at the game's `FilmGrainTexelSize` 0.768 (98 px per tile) and moved to a random offset every frame. Unreal multiplies the image by it at full strength in deep shadows and 1.2% in midtones; an overlay cannot multiply, so `tools/make_grain_overlay.py` turns it into light/dark specks and `FilmGrainStrength` (0.12) sets the opacity, which is estimated.
 - **DigiClamp** (decoded, not ported): its pixel shader clamps each colour channel to [0.05, 0.8] and blends toward a constant colour. Roblox has no per-pixel clamp, so it is not reproduced.
 - **Resolution**: the game renders at 100% (`sg.ResolutionQuality=100`, TSR history 100%). Its rough, "low-res" look comes from Sharpen2 (intensity 5 over a 5-pixel offset, which draws the bright halos around silhouettes), chromatic aberration 1.56, heavy bloom and grain, not from a lower render resolution. Roblox cannot sharpen or split channels per pixel.
+- **Low-resolution approximation** (not from the source): because those effects cannot be reproduced, `LensEffects.luau` adds a coarse pixel grid (`assets/pixelgrid.png`, tiled every `LowResPixelSize` 3 px) and widens the blur by half a pixel cell. Turn it off with `LowResEnabled`.
 
 What does not carry over: Lumen GI, local exposure, chromatic aberration, lens distortion, sharpening, DigiClamp and the source's film grain.
 
