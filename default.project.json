@@ -1,0 +1,29 @@
+{
+  "name": "YourHappyPlacePort",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "YHP": {
+        "$path": "src/ReplicatedStorage/YHP",
+        "$attributes": {
+          "Enabled": true,
+          "Suspended": false,
+          "SourceMovement": true,
+          "MouseSensitivityScale": 1,
+          "ShakeScale": 1,
+          "VignetteEnabled": true,
+          "VignetteImage": "rbxassetid://82354150218129",
+          "LensDirtImage": "rbxassetid://70783488855847",
+          "CloudImage": "rbxassetid://91504577422474"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "YHPPlayer": {
+          "$path": "src/StarterPlayerScripts/YHPPlayer.client.luau"
+        }
+      }
+    }
+  }
+}
