@@ -75,7 +75,6 @@ return {
 	MotionBlurAmount = 1,
 	MotionBlurMax = 100, -- percent of screen
 	MotionBlurTargetFPS = 30, -- engine default, not overridden
-	FilmGrainTexelSize = 0.768, -- grain texel size in screen pixels
 
 	-- Map6 DirectionalLight
 	SunTemperature = 4687.2,

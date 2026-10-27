@@ -34,8 +34,7 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | LensDirtBase / LensDirtMax | 0.12 / 0.7 | Smudge opacity with no light in view / facing a bright light |
 | MotionBlurEnabled | true | Blur while the camera turns |
 | MotionBlurAmount | 1 | Source MotionBlurAmount |
-| DepthOfFieldScale | 1 | Multiplier on the source depth-of-field blur |
-| FilmGrainEnabled / FilmGrainStrength | true / 0.12 | Film grain overlay and its opacity |
-| LowResEnabled / LowResPixelSize / LowResGridStrength | true / 3 / 0.22 | Approximate low-resolution look (not a source setting) |
+| ConstantBlurScale | 2 | Multiplier on the source depth-of-field blur (always on) |
+| SharpenRimEnabled / SharpenRimStrength / SharpenRimColor | true / 0.85 / light blue-white | Light outline around dark silhouettes from the game's sharpening |
 
 Controls match the source: WASD or arrow keys to move, LeftShift to run (only while moving forward), mouse to look, no jump.

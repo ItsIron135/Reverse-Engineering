@@ -2,12 +2,13 @@
 --   * lens dirt: Unreal adds lensDirt11 on top of bloom, so it shows where bright light is in view.
 --     Here its opacity follows how directly the camera faces the sun and nearby lights.
 --   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
---     defocused by a near-constant amount, so it becomes a constant blur radius.
+--     defocused by a near-constant amount, so it becomes a constant blur radius. ConstantBlurScale
+--     (default 2) widens it toward the softer look of the running game.
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
---   * film grain: Unreal's own grain texture, tiled at FilmGrainTexelSize and re-placed every frame.
---   * low resolution (not from the source, which renders at 100%): a coarse pixel grid plus extra
---     blur, standing in for the rough look its sharpening halos and colour fringing produce.
+--   * sharpening rim: the game's Sharpen2 material adds 5x the luminance difference between each
+--     pixel and four neighbours 0.005 of the screen away, which draws a bright rim on the sky side
+--     of every dark silhouette. A Highlight on the whole workspace outlines that same silhouette.
 local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 
@@ -27,29 +28,19 @@ function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 	dirt.ZIndex = 1
 	dirt.Parent = gui
 
-	-- Oversized by one tile so a random per-frame offset never exposes an edge
-	local grain = Instance.new("ImageLabel")
-	grain.Name = "FilmGrain"
-	grain.BackgroundTransparency = 1
-	grain.ScaleType = Enum.ScaleType.Tile
-	grain.ZIndex = 3
-	grain.Parent = gui
-
-	local pixelGrid = Instance.new("ImageLabel")
-	pixelGrid.Name = "LowResGrid"
-	pixelGrid.BackgroundTransparency = 1
-	pixelGrid.ScaleType = Enum.ScaleType.Tile
-	pixelGrid.ResampleMode = Enum.ResamplerMode.Pixelated
-	pixelGrid.Size = UDim2.fromScale(1, 1)
-	pixelGrid.ZIndex = 4
-	pixelGrid.Parent = gui
+	-- Fully transparent parts (including the hidden local character) are not outlined
+	local rim = Instance.new("Highlight")
+	rim.Name = "YHP_SharpenRim"
+	rim.Adornee = workspace
+	rim.FillTransparency = 1
+	rim.DepthMode = Enum.HighlightDepthMode.Occluded
+	rim.Enabled = false
 
 	return setmetatable({
 		settings = settings,
 		config = config,
 		dirt = dirt,
-		grain = grain,
-		pixelGrid = pixelGrid,
+		rim = rim,
 		blur = nil,
 		glare = 0,
 		lights = {},
@@ -126,29 +117,14 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
-	-- Film grain
-	local grainImage = self.settings:GetAttribute("FilmGrainImage")
-	local grainOn = self:_setting("FilmGrainEnabled", true) and grainImage ~= nil and grainImage ~= ""
-	self.grain.Visible = grainOn
-	if grainOn then
-		local tile = 128 * self.config.FilmGrainTexelSize
-		self.grain.Image = grainImage
-		self.grain.TileSize = UDim2.fromOffset(tile, tile)
-		self.grain.Size = UDim2.new(1, tile, 1, tile)
-		self.grain.Position = UDim2.fromOffset(-math.random() * tile, -math.random() * tile)
-		self.grain.ImageTransparency = 1 - self:_setting("FilmGrainStrength", 0.12)
+	-- Sharpening rim
+	local rimOn = self:_setting("SharpenRimEnabled", true)
+	if rimOn and self.rim.Parent ~= camera then
+		self.rim.Parent = camera
 	end
-
-	-- Low-resolution approximation
-	local gridImage = self.settings:GetAttribute("LowResGridImage")
-	local lowRes = self:_setting("LowResEnabled", true) and gridImage ~= nil and gridImage ~= ""
-	local pixelSize = self:_setting("LowResPixelSize", 3)
-	self.pixelGrid.Visible = lowRes
-	if lowRes then
-		self.pixelGrid.Image = gridImage
-		self.pixelGrid.TileSize = UDim2.fromOffset(pixelSize, pixelSize)
-		self.pixelGrid.ImageTransparency = 1 - self:_setting("LowResGridStrength", 0.22)
-	end
+	self.rim.Enabled = rimOn
+	self.rim.OutlineColor = self:_setting("SharpenRimColor", Color3.fromRGB(220, 232, 255))
+	self.rim.OutlineTransparency = 1 - self:_setting("SharpenRimStrength", 0.85)
 
 	-- Depth-of-field softness and motion blur
 	if not self.blur or self.blur.Parent ~= camera then
@@ -166,10 +142,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	local focalLength = (c.DepthOfFieldSensorWidth / 2) / math.tan(math.rad(c.HorizontalFOV / 2))
 	local focus = c.DepthOfFieldFocalDistance * 10
 	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
-	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("DepthOfFieldScale", 1)
-	if lowRes then
-		focusRadius = math.sqrt(focusRadius ^ 2 + (pixelSize / 2) ^ 2)
-	end
+	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 2)
 	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
@@ -187,8 +160,7 @@ end
 
 function LensEffects:Release()
 	self.dirt.Visible = false
-	self.grain.Visible = false
-	self.pixelGrid.Visible = false
+	self.rim.Enabled = false
 	self.lastRotation = nil
 	if self.blur then
 		self.blur.Enabled = false

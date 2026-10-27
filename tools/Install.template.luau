@@ -14,8 +14,6 @@ local IMAGES = {
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
 	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
-	FilmGrainImage = "rbxassetid://78872525385427", -- Marcie_Grain_v3_128_M2_000 converted by tools/make_grain_overlay.py
-	LowResGridImage = "rbxassetid://117687923778338", -- assets/pixelgrid.png
 }
 
 local MODULES = {
@@ -90,12 +88,10 @@ for name, value in {
 	LensDirtMax = 0.7, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	DepthOfFieldScale = 1, -- multiplier on the source depth-of-field blur
-	FilmGrainEnabled = true,
-	FilmGrainStrength = 0.12, -- overlay opacity; the source applies grain at full strength only in deep shadows
-	LowResEnabled = true, -- approximation, not a source setting
-	LowResPixelSize = 3,
-	LowResGridStrength = 0.22,
+	ConstantBlurScale = 2, -- multiplier on the source depth-of-field blur
+	SharpenRimEnabled = true, -- bright rim from the game's Sharpen2 filter
+	SharpenRimStrength = 0.85,
+	SharpenRimColor = Color3.fromRGB(220, 232, 255),
 } do
 	folder:SetAttribute(name, value)
 end
