@@ -13,6 +13,7 @@ local Unreal = require(YHP:WaitForChild("Unreal"))
 local SpringArm = require(YHP:WaitForChild("SpringArm"))
 local Movement = require(YHP:WaitForChild("Movement"))
 local CameraShake = require(YHP:WaitForChild("CameraShake"))
+local LensEffects = require(YHP:WaitForChild("LensEffects"))
 
 local player = Players.LocalPlayer
 
@@ -115,8 +116,10 @@ local vignette = Instance.new("ImageLabel")
 vignette.Size = UDim2.fromScale(1, 1)
 vignette.BackgroundTransparency = 1
 vignette.ScaleType = Enum.ScaleType.Stretch
+vignette.ZIndex = 2
 vignette.Parent = vignetteGui
 vignetteGui.Parent = player:WaitForChild("PlayerGui")
+local lens = LensEffects.new(YHP, vignetteGui)
 
 local function setHidden(hidden)
 	if hidden and character then
@@ -160,6 +163,7 @@ local function release()
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	UserInputService.MouseIconEnabled = true
 	vignette.Visible = false
+	lens:Release()
 	setHidden(false)
 end
 
@@ -333,6 +337,7 @@ local function step(dt)
 	local image = YHP:GetAttribute("VignetteImage")
 	vignette.Visible = attribute("VignetteEnabled", true) and image ~= nil and image ~= ""
 	vignette.Image = image or ""
+	lens:Update(dt, camera, pose)
 end
 
 RunService:BindToRenderStep("YHPPlayer", Enum.RenderPriority.Camera.Value + 1, step)

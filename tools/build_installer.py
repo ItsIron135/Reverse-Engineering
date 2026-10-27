@@ -5,7 +5,7 @@ Usage: python tools/build_installer.py
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MODULES = ["Config", "Unreal", "UnrealPerlin", "CameraShake", "SpringArm", "Movement"]
+MODULES = ["Config", "Unreal", "UnrealPerlin", "CameraShake", "SpringArm", "Movement", "LensEffects"]
 
 
 def block(text):

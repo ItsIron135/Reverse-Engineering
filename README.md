@@ -30,5 +30,10 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | MouseSensitivityScale | 1 | Multiplier on the source's 0.131°/pixel |
 | ShakeScale | 1 | Multiplier on all camera shakes |
 | VignetteEnabled | true | Show the vignette overlay |
+| LensDirtEnabled | true | Show the lens-smudge overlay |
+| LensDirtBase / LensDirtMax | 0.12 / 0.7 | Smudge opacity with no light in view / facing a bright light |
+| MotionBlurEnabled | true | Blur while the camera turns |
+| MotionBlurAmount / MotionBlurMax | 1 / 14 | Turn-blur strength and cap |
+| BaseBlur | 1.5 | Constant softness |
 
 Controls match the source: WASD or arrow keys to move, LeftShift to run (only while moving forward), mouse to look, no jump.

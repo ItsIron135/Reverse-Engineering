@@ -13,6 +13,7 @@ local IMAGES = {
 	VignetteImage = "rbxassetid://82354150218129", -- assets/vignette.png (UE vignette, intensity 0.32)
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
+	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
 }
 
 local MODULES = {
@@ -82,6 +83,13 @@ for name, value in {
 	MouseSensitivityScale = 1,
 	ShakeScale = 1,
 	VignetteEnabled = true,
+	LensDirtEnabled = true,
+	LensDirtBase = 0.12, -- smudge opacity with no bright light in view
+	LensDirtMax = 0.7, -- opacity when facing the sun or a light
+	MotionBlurEnabled = true,
+	MotionBlurAmount = 1, -- source MotionBlurAmount
+	MotionBlurMax = 14,
+	BaseBlur = 1.5, -- constant softness
 } do
 	folder:SetAttribute(name, value)
 end
@@ -123,23 +131,26 @@ local function kelvinToColor(kelvin)
 end
 Lighting.ColorShift_Top = kelvinToColor(4687.2)
 
+-- Darker, contrasty image with blown-out lights: the source's contrast 1.2, exposure bias well
+-- below neutral and bloom 250 with a low threshold.
+Lighting.ExposureCompensation = -0.6
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
-grade.Contrast = 0.2 -- ColorContrast 1.2
-grade.Brightness = 0.04 -- stands in for shadow/midtone gamma 1.48
-grade.Saturation = 0
-grade.TintColor = Color3.new(1, 1, 1)
+grade.Contrast = 0.35
+grade.Brightness = -0.04
+grade.Saturation = -0.08
+grade.TintColor = Color3.fromRGB(255, 250, 242)
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
-bloom.Intensity = 1
-bloom.Size = 36
-bloom.Threshold = 0.9
+bloom.Intensity = 2
+bloom.Size = 56
+bloom.Threshold = 0.7
 local depth = Instance.new("DepthOfFieldEffect")
 depth.Name = "YHP_LensDepth"
 depth.FocusDistance = 40 / 28 -- DepthOfFieldFocalDistance 40 cm
-depth.InFocusRadius = 2
+depth.InFocusRadius = 1
 depth.NearIntensity = 0
-depth.FarIntensity = 0.1
+depth.FarIntensity = 0.3
 for _, effect in { grade, bloom, depth } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting

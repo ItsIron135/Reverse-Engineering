@@ -14,7 +14,15 @@
           "VignetteEnabled": true,
           "VignetteImage": "rbxassetid://82354150218129",
           "LensDirtImage": "rbxassetid://70783488855847",
-          "CloudImage": "rbxassetid://91504577422474"
+          "CloudImage": "rbxassetid://91504577422474",
+          "LensDirtOverlayImage": "rbxassetid://83251249094103",
+          "LensDirtEnabled": true,
+          "LensDirtBase": 0.12,
+          "LensDirtMax": 0.7,
+          "MotionBlurEnabled": true,
+          "MotionBlurAmount": 1,
+          "MotionBlurMax": 14,
+          "BaseBlur": 1.5
         }
       }
     },

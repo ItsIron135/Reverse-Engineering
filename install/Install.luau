@@ -13,6 +13,7 @@ local IMAGES = {
 	VignetteImage = "rbxassetid://82354150218129", -- assets/vignette.png (UE vignette, intensity 0.32)
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
+	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
 }
 
 local MODULES = {
@@ -396,6 +397,145 @@ function Movement:Step(dt: number, input: Vector3, maxSpeed: number): Vector3
 end
 
 return Movement
+]=] },
+	{ "LensEffects", [=[
+-- Screen-space parts of the source camera look that Roblox has no post-process for:
+--   * lens dirt: Unreal adds lensDirt11 on top of bloom, so it shows where bright light is in view.
+--     Here its opacity follows how directly the camera faces the sun and nearby lights.
+--   * motion blur: Unreal blurs along per-pixel motion (MotionBlurAmount 1 = a full-frame shutter).
+--     Roblox only has a uniform BlurEffect, sized from the camera's angular motion this frame.
+--   * a constant base softness standing in for the source's soft, low-detail image.
+local Lighting = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
+
+local LensEffects = {}
+LensEffects.__index = LensEffects
+
+local LIGHT_SCAN_INTERVAL = 1
+local LIGHT_RANGE = 150
+
+function LensEffects.new(settings: Instance, gui: ScreenGui)
+	local dirt = Instance.new("ImageLabel")
+	dirt.Name = "LensDirt"
+	dirt.Size = UDim2.fromScale(1, 1)
+	dirt.BackgroundTransparency = 1
+	dirt.ScaleType = Enum.ScaleType.Crop
+	dirt.ImageTransparency = 1
+	dirt.ZIndex = 1
+	dirt.Parent = gui
+
+	return setmetatable({
+		settings = settings,
+		dirt = dirt,
+		blur = nil,
+		glare = 0,
+		lights = {},
+		scanTimer = 0,
+		lastRotation = nil,
+	}, LensEffects)
+end
+
+function LensEffects:_setting(name, default)
+	local value = self.settings:GetAttribute(name)
+	if value == nil then
+		return default
+	end
+	return value
+end
+
+function LensEffects:_scanLights(origin: Vector3)
+	table.clear(self.lights)
+	for _, light in workspace:GetDescendants() do
+		local part = light.Parent
+		if light:IsA("Light") and light.Enabled and light.Brightness > 0 and part and part:IsA("BasePart") then
+			if (part.Position - origin).Magnitude < LIGHT_RANGE then
+				table.insert(self.lights, { part = part, brightness = light.Brightness })
+			end
+		elseif light:IsA("BasePart") and light.Material == Enum.Material.Neon and light.Transparency < 0.5 then
+			if (light.Position - origin).Magnitude < LIGHT_RANGE then
+				table.insert(self.lights, { part = light, brightness = 1 })
+			end
+		end
+	end
+	for _, tagged in CollectionService:GetTagged("YHPGlare") do
+		if tagged:IsA("BasePart") then
+			table.insert(self.lights, { part = tagged, brightness = tagged:GetAttribute("GlareBrightness") or 2 })
+		end
+	end
+end
+
+-- 0..1: how much bright light the lens is facing.
+function LensEffects:_glare(dt: number, pose: CFrame): number
+	self.scanTimer -= dt
+	if self.scanTimer <= 0 then
+		self.scanTimer = LIGHT_SCAN_INTERVAL
+		self:_scanLights(pose.Position)
+	end
+	local look = pose.LookVector
+	local glare = 0
+	local sun = Lighting:GetSunDirection()
+	if sun.Y > 0 then
+		glare += math.max(0, look:Dot(sun)) ^ 6 * math.min(1, sun.Y * 4)
+	end
+	for _, light in self.lights do
+		local offset = light.part.Position - pose.Position
+		local distance = offset.Magnitude
+		if distance > 0 then
+			local facing = math.max(0, look:Dot(offset / distance)) ^ 8
+			glare += facing * light.brightness / (1 + distance / 20)
+		end
+	end
+	return math.clamp(glare, 0, 1)
+end
+
+function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
+	-- Lens dirt
+	local image = self.settings:GetAttribute("LensDirtOverlayImage")
+	local dirtOn = self:_setting("LensDirtEnabled", true) and image ~= nil and image ~= ""
+	self.dirt.Visible = dirtOn
+	if dirtOn then
+		self.dirt.Image = image
+		local target = self:_glare(dt, pose)
+		-- Glare builds faster than it fades so a light sweeping past still flashes the dirt
+		local rate = target > self.glare and 6 or 3
+		self.glare += (target - self.glare) * math.min(1, dt * rate)
+		local base, peak = self:_setting("LensDirtBase", 0.12), self:_setting("LensDirtMax", 0.7)
+		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
+	end
+
+	-- Motion blur and base softness
+	if not self.blur or self.blur.Parent ~= camera then
+		if self.blur then
+			self.blur:Destroy()
+		end
+		self.blur = Instance.new("BlurEffect")
+		self.blur.Name = "YHP_MotionBlur"
+		self.blur.Parent = camera
+	end
+	local size = self:_setting("BaseBlur", 1.5)
+	local rotation = pose.Rotation
+	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
+		local _, angle = (self.lastRotation:Inverse() * rotation):ToAxisAngle()
+		local viewport = camera.ViewportSize
+		local pixelsPerRadian = viewport.X / (2 * math.tan(math.rad(camera.MaxAxisFieldOfView / 2)))
+		-- Streak length over one frame; a Gaussian of about half that radius reads similarly.
+		local streak = math.abs(angle) * pixelsPerRadian * self:_setting("MotionBlurAmount", 1)
+		size += math.min(streak * 0.5, self:_setting("MotionBlurMax", 14))
+	end
+	self.lastRotation = rotation
+	self.blur.Size = size
+	self.blur.Enabled = true
+end
+
+function LensEffects:Release()
+	self.dirt.Visible = false
+	self.lastRotation = nil
+	if self.blur then
+		self.blur.Enabled = false
+	end
+end
+
+return LensEffects
 ]=] }
 }
 
@@ -415,6 +555,7 @@ local Unreal = require(YHP:WaitForChild("Unreal"))
 local SpringArm = require(YHP:WaitForChild("SpringArm"))
 local Movement = require(YHP:WaitForChild("Movement"))
 local CameraShake = require(YHP:WaitForChild("CameraShake"))
+local LensEffects = require(YHP:WaitForChild("LensEffects"))
 
 local player = Players.LocalPlayer
 
@@ -517,8 +658,10 @@ local vignette = Instance.new("ImageLabel")
 vignette.Size = UDim2.fromScale(1, 1)
 vignette.BackgroundTransparency = 1
 vignette.ScaleType = Enum.ScaleType.Stretch
+vignette.ZIndex = 2
 vignette.Parent = vignetteGui
 vignetteGui.Parent = player:WaitForChild("PlayerGui")
+local lens = LensEffects.new(YHP, vignetteGui)
 
 local function setHidden(hidden)
 	if hidden and character then
@@ -562,6 +705,7 @@ local function release()
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	UserInputService.MouseIconEnabled = true
 	vignette.Visible = false
+	lens:Release()
 	setHidden(false)
 end
 
@@ -735,6 +879,7 @@ local function step(dt)
 	local image = YHP:GetAttribute("VignetteImage")
 	vignette.Visible = attribute("VignetteEnabled", true) and image ~= nil and image ~= ""
 	vignette.Image = image or ""
+	lens:Update(dt, camera, pose)
 end
 
 RunService:BindToRenderStep("YHPPlayer", Enum.RenderPriority.Camera.Value + 1, step)
@@ -801,6 +946,13 @@ for name, value in {
 	MouseSensitivityScale = 1,
 	ShakeScale = 1,
 	VignetteEnabled = true,
+	LensDirtEnabled = true,
+	LensDirtBase = 0.12, -- smudge opacity with no bright light in view
+	LensDirtMax = 0.7, -- opacity when facing the sun or a light
+	MotionBlurEnabled = true,
+	MotionBlurAmount = 1, -- source MotionBlurAmount
+	MotionBlurMax = 14,
+	BaseBlur = 1.5, -- constant softness
 } do
 	folder:SetAttribute(name, value)
 end
@@ -842,23 +994,26 @@ local function kelvinToColor(kelvin)
 end
 Lighting.ColorShift_Top = kelvinToColor(4687.2)
 
+-- Darker, contrasty image with blown-out lights: the source's contrast 1.2, exposure bias well
+-- below neutral and bloom 250 with a low threshold.
+Lighting.ExposureCompensation = -0.6
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
-grade.Contrast = 0.2 -- ColorContrast 1.2
-grade.Brightness = 0.04 -- stands in for shadow/midtone gamma 1.48
-grade.Saturation = 0
-grade.TintColor = Color3.new(1, 1, 1)
+grade.Contrast = 0.35
+grade.Brightness = -0.04
+grade.Saturation = -0.08
+grade.TintColor = Color3.fromRGB(255, 250, 242)
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
-bloom.Intensity = 1
-bloom.Size = 36
-bloom.Threshold = 0.9
+bloom.Intensity = 2
+bloom.Size = 56
+bloom.Threshold = 0.7
 local depth = Instance.new("DepthOfFieldEffect")
 depth.Name = "YHP_LensDepth"
 depth.FocusDistance = 40 / 28 -- DepthOfFieldFocalDistance 40 cm
-depth.InFocusRadius = 2
+depth.InFocusRadius = 1
 depth.NearIntensity = 0
-depth.FarIntensity = 0.1
+depth.FarIntensity = 0.3
 for _, effect in { grade, bloom, depth } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting

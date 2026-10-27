@@ -57,14 +57,16 @@ Every level's PostProcessVolume shares these active settings: contrast 1.2, shad
 What carries over to Roblox:
 
 - **Vignette**: `assets/vignette.png` is baked by `tools/make_vignette.py` from Unreal's vignette mask at intensity 0.32 and shown as a full-screen overlay. Unreal applies it before tonemapping; the overlay uses the display-space equivalent, so it is close but not identical.
-- **Colour grade, bloom, depth of field**: Roblox `ColorCorrectionEffect`, `BloomEffect` and `DepthOfFieldEffect` set to approximations of the values above. Unreal's numbers are in different units, so these are judgement calls, labelled as such in the installer.
+- **Colour grade, bloom, depth of field**: darker and contrastier with blown-out lights (exposure -0.6, contrast 0.35, bloom intensity 2 / size 56 / threshold 0.7, far depth-of-field 0.3). Unreal's numbers are in different units, so these are tuned by eye toward the source's look rather than converted.
+- **Lens dirt**: `lensDirt11` is converted by `tools/make_lens_dirt_overlay.py` (colour kept, luminance as alpha, sensor noise cut) and shown full-screen by `LensEffects.luau`. In Unreal it only appears where bloom is bright, so its opacity rises from `LensDirtBase` to `LensDirtMax` as the camera faces the sun, Light instances, Neon parts or parts tagged `YHPGlare`.
+- **Motion blur and softness**: Roblox has no per-pixel motion blur. A camera `BlurEffect` holds a constant `BaseBlur` and adds half the on-screen streak length of this frame's camera rotation (MotionBlurAmount 1), capped by `MotionBlurMax`. It blurs uniformly rather than along the motion.
 - **Sun colour**: Map6's directional light is 4687 K; `Lighting.ColorShift_Top` is set to that colour temperature.
 
-What does not carry over: Lumen GI, local exposure, chromatic aberration, lens distortion, sharpening, DigiClamp, motion blur, the bloom dirt mask (Roblox bloom cannot take a mask) and the source's film grain. No substitute overlays are added for these.
+What does not carry over: Lumen GI, local exposure, chromatic aberration, lens distortion, sharpening, DigiClamp and the source's film grain.
 
 ## Source textures
 
-`lensDirt11` (2064×1161 bloom dirt mask) and `Cloud` (1000×662, input to the Map6 cloud material) were decoded from their BGRA mips and uploaded to Roblox. The installer stores their asset IDs as attributes on `ReplicatedStorage.YHP` and as Decals under `ReplicatedStorage.YHP.SourceTextures`. They are not shown in-game because neither has a Roblox equivalent of how the source uses it. The PNGs are not committed here because they are the game's own artwork.
+`lensDirt11` (2064×1161 bloom dirt mask) and `Cloud` (1000×662, input to the Map6 cloud material) were decoded from their BGRA mips and uploaded to Roblox. The installer stores their asset IDs as attributes on `ReplicatedStorage.YHP` and as Decals under `ReplicatedStorage.YHP.SourceTextures`. The lens dirt is shown through the converted overlay above; the cloud texture is not used. The PNGs are not committed here because they are the game's own artwork.
 
 ## Known differences
 
