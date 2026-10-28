@@ -12,6 +12,7 @@ local corner = scene:GetAttribute("TerrainCorner")
 terrain:PasteRegion(scene.Terrain, Vector3int16.new(corner.X, corner.Y, corner.Z), true)
 -- The level 0 scene uses the stock Ground material, not the DreamGrass variant
 game:GetService("MaterialService"):SetBaseMaterialOverride(Enum.Material.Ground, "")
+game:GetService("MaterialService"):SetBaseMaterialOverride(Enum.Material.Mud, "")
 
 local saved = scene.Lighting
 for key, value in saved:GetAttributes() do
