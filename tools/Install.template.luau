@@ -88,7 +88,7 @@ for name, value in {
 	LensDirtMax = 0.15, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	ConstantBlurScale = 4.5, -- multiplier on the source depth-of-field blur
+	ConstantBlurScale = 4.23, -- multiplier on the source depth-of-field blur (6.4 px at 1255 px wide)
 	MotionBlurWeight = 1, -- share of the motion-blur radius added on top of the constant blur
 	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
@@ -180,10 +180,10 @@ sky.StarCount = 0
 
 local depth = Instance.new("DepthOfFieldEffect")
 depth.Name = "YHP_LensDepth"
-depth.FocusDistance = 4
-depth.InFocusRadius = 10
-depth.NearIntensity = 0
-depth.FarIntensity = 0.35 -- distance softness of a cheap camera
+depth.FocusDistance = 0
+depth.InFocusRadius = 0
+depth.NearIntensity = 0.35 -- even softness near and far
+depth.FarIntensity = 0.35
 
 for _, effect in { grade, bloom, depth, sky } do
 	effect:SetAttribute("YHPManaged", true)
