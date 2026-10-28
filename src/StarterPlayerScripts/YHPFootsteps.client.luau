@@ -52,7 +52,7 @@ footfall.Event:Connect(function(_material, running)
 	until pick ~= last or #sounds == 1
 	last = pick
 	local sound = pick:Clone()
-	sound.Volume = running and 0.75 or 0.45
+	sound.Volume = running and 0.4 or 0.25
 	sound.PlaybackSpeed = (running and 1.08 or 1) * random:NextNumber(0.94, 1.06)
 	sound.Parent = SoundService
 	SoundService:PlayLocalSound(sound)

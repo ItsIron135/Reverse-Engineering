@@ -27,7 +27,7 @@ variant.BaseMaterial = Enum.Material.Ground
 for key, id in GRASS do
 	variant[key] = id
 end
-variant.StudsPerTile = 8
+variant.StudsPerTile = 16 -- larger tile avoids distant repetition rings
 variant.Parent = MaterialService
 MaterialService:SetBaseMaterialOverride(Enum.Material.Ground, "DreamGrass")
 workspace.Terrain:SetMaterialColor(Enum.Material.Ground, Color3.new(1, 1, 1))
