@@ -3,7 +3,7 @@
 Unreal adds the dirt mask on top of bloom, so dark texels add nothing and bright texels add
 light. A Roblox ImageLabel alpha-blends, so the overlay keeps the texel colour and uses its
 luminance as alpha. The result is box-downsampled to fit Roblox's 1024 px image limit.
-Usage: python make_lens_dirt_overlay.py <lensDirt11.png> <out.png> [max_width]
+Usage: python make_lens_dirt_overlay.py <lensDirt.png> <out.png> [max_width] [black_level]
 """
 import struct
 import sys
@@ -53,6 +53,9 @@ def read_png_rgba(path):
 def main():
     src, out = sys.argv[1], sys.argv[2]
     max_width = int(sys.argv[3]) if len(sys.argv) > 3 else 1024
+    global BLACK_LEVEL
+    if len(sys.argv) > 4:
+        BLACK_LEVEL = int(sys.argv[4])
     width, height, rows = read_png_rgba(src)
     factor = max(1, -(-width // max_width))
     out_w, out_h = width // factor, height // factor

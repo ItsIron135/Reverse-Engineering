@@ -13,7 +13,7 @@ local IMAGES = {
 	VignetteImage = "rbxassetid://82354150218129", -- assets/vignette.png (UE vignette, intensity 0.32)
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
-	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
+	LensDirtOverlayImage = "rbxassetid://118467543494520", -- level 0 lensDirt2, bright spots only (make_lens_dirt_overlay.py black level 120)
 }
 
 local MODULES = {
@@ -84,11 +84,11 @@ for name, value in {
 	ShakeScale = 1,
 	VignetteEnabled = false, -- off by request
 	LensDirtEnabled = true,
-	LensDirtBase = 0.04, -- faint smudges with no bright light in view
-	LensDirtMax = 0.3, -- opacity when facing the sun or a light
+	LensDirtBase = 0.03, -- faint smudges with no bright light in view
+	LensDirtMax = 0.15, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	ConstantBlurScale = 2, -- multiplier on the source depth-of-field blur
+	ConstantBlurScale = 3.5, -- multiplier on the source depth-of-field blur
 	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
 	SharpenRimColor = Color3.fromRGB(220, 232, 255),
@@ -131,21 +131,30 @@ local function kelvinToColor(kelvin)
 	local b = t >= 66 and 255 or (t <= 19 and 0 or 138.5177312231 * math.log(t - 10) - 305.0447927307)
 	return Color3.fromRGB(math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
 end
--- Night time by request; the Map6 sun colour (kelvinToColor(4687.2)) is unused at night.
-Lighting.ClockTime = 0
+-- Level 0 has no directional light: daytime sky photo, no sun, ground lit only by the sky.
+-- (Map6's sun colour would be kelvinToColor(4687.2).)
+Lighting.ClockTime = 14.5
+Lighting.Brightness = 0
 Lighting.ColorShift_Top = Color3.new(0, 0, 0)
+Lighting.EnvironmentDiffuseScale = 0.4
+Lighting.EnvironmentSpecularScale = 0.5
+Lighting.OutdoorAmbient = Color3.fromRGB(55, 66, 84)
+Lighting.Ambient = Color3.new(0, 0, 0)
 
 -- Values derived by tools/fit_color_grade.py and docs/source-values.md.
 -- Exposure: the game clamps auto exposure at EV100 0 with bias -8.84, a fixed exposure that needs
 -- about 100 cd/m2 for middle grey. Map6's 20 lux sun leaves lit surfaces ~5.7 stops under a normal
 -- auto exposure; Roblox's lowest setting is -3.
-Lighting.ExposureCompensation = 0 -- -3 matches the daytime derivation but is black at night
+-- Tuned against an in-game screenshot of level 0: bright cloudy sky over near-black ground.
+Lighting.ExposureCompensation = -0.8
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
-grade.Contrast = -0.088 -- fit of ColorContrast 1.2 + shadow/midtone gamma 1.48 + FilmWhiteClip 1
-grade.Brightness = 0.113
-grade.Saturation = 0 -- ColorSaturation is not overridden
-grade.TintColor = Color3.new(1, 1, 1) -- WhiteTemp 6500 K is the neutral point
+-- The fitted grade (Contrast -0.088, Brightness 0.113 from fit_color_grade.py) lifted the shadows
+-- into a milky haze in Roblox; matched to the screenshot instead.
+grade.Contrast = 0.22
+grade.Brightness = -0.02
+grade.Saturation = -0.25
+grade.TintColor = Color3.fromRGB(215, 225, 255)
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
 bloom.Threshold = 1 -- source has no threshold, but blooming everything read as haze

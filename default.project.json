@@ -15,13 +15,13 @@
           "VignetteImage": "rbxassetid://82354150218129",
           "LensDirtImage": "rbxassetid://70783488855847",
           "CloudImage": "rbxassetid://91504577422474",
-          "LensDirtOverlayImage": "rbxassetid://83251249094103",
+          "LensDirtOverlayImage": "rbxassetid://118467543494520",
           "LensDirtEnabled": true,
-          "LensDirtBase": 0.04,
-          "LensDirtMax": 0.3,
+          "LensDirtBase": 0.03,
+          "LensDirtMax": 0.15,
           "MotionBlurEnabled": true,
           "MotionBlurAmount": 1,
-          "ConstantBlurScale": 2,
+          "ConstantBlurScale": 3.5,
           "SharpenRimEnabled": false,
           "SharpenRimStrength": 0.85
         }
