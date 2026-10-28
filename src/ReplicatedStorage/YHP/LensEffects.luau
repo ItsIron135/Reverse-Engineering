@@ -113,12 +113,12 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		-- Glare builds faster than it fades so a light sweeping past still flashes the dirt
 		local rate = target > self.glare and 6 or 3
 		self.glare += (target - self.glare) * math.min(1, dt * rate)
-		local base, peak = self:_setting("LensDirtBase", 0.12), self:_setting("LensDirtMax", 0.7)
+		local base, peak = self:_setting("LensDirtBase", 0), self:_setting("LensDirtMax", 0.7)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
 	-- Sharpening rim
-	local rimOn = self:_setting("SharpenRimEnabled", true)
+	local rimOn = self:_setting("SharpenRimEnabled", false)
 	if rimOn and self.rim.Parent ~= camera then
 		self.rim.Parent = camera
 	end

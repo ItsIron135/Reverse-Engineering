@@ -17,12 +17,12 @@
           "CloudImage": "rbxassetid://91504577422474",
           "LensDirtOverlayImage": "rbxassetid://83251249094103",
           "LensDirtEnabled": true,
-          "LensDirtBase": 0.12,
+          "LensDirtBase": 0,
           "LensDirtMax": 0.7,
           "MotionBlurEnabled": true,
           "MotionBlurAmount": 1,
           "ConstantBlurScale": 2,
-          "SharpenRimEnabled": true,
+          "SharpenRimEnabled": false,
           "SharpenRimStrength": 0.85
         }
       }

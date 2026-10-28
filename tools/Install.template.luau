@@ -84,12 +84,12 @@ for name, value in {
 	ShakeScale = 1,
 	VignetteEnabled = true,
 	LensDirtEnabled = true,
-	LensDirtBase = 0.12, -- smudge opacity with no bright light in view
+	LensDirtBase = 0, -- smudge opacity with no bright light in view (a constant layer read as a yellow haze)
 	LensDirtMax = 0.7, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
 	ConstantBlurScale = 2, -- multiplier on the source depth-of-field blur
-	SharpenRimEnabled = true, -- bright rim from the game's Sharpen2 filter
+	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
 	SharpenRimColor = Color3.fromRGB(220, 232, 255),
 } do
@@ -131,13 +131,15 @@ local function kelvinToColor(kelvin)
 	local b = t >= 66 and 255 or (t <= 19 and 0 or 138.5177312231 * math.log(t - 10) - 305.0447927307)
 	return Color3.fromRGB(math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
 end
-Lighting.ColorShift_Top = kelvinToColor(4687.2)
+-- Night time by request; the Map6 sun colour (kelvinToColor(4687.2)) is unused at night.
+Lighting.ClockTime = 0
+Lighting.ColorShift_Top = Color3.new(0, 0, 0)
 
 -- Values derived by tools/fit_color_grade.py and docs/source-values.md.
 -- Exposure: the game clamps auto exposure at EV100 0 with bias -8.84, a fixed exposure that needs
 -- about 100 cd/m2 for middle grey. Map6's 20 lux sun leaves lit surfaces ~5.7 stops under a normal
 -- auto exposure; Roblox's lowest setting is -3.
-Lighting.ExposureCompensation = -3
+Lighting.ExposureCompensation = 0 -- -3 matches the daytime derivation but is black at night
 local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "YHP_ColorGrade"
 grade.Contrast = -0.088 -- fit of ColorContrast 1.2 + shadow/midtone gamma 1.48 + FilmWhiteClip 1
@@ -146,7 +148,7 @@ grade.Saturation = 0 -- ColorSaturation is not overridden
 grade.TintColor = Color3.new(1, 1, 1) -- WhiteTemp 6500 K is the neutral point
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "YHP_Bloom"
-bloom.Threshold = 0 -- BloomThreshold keeps the engine default -1: no threshold
+bloom.Threshold = 1 -- source has no threshold, but blooming everything read as haze
 bloom.Size = 56 -- widest Roblox radius; the source's widest kernel spans most of the screen
 bloom.Intensity = 1 -- source 250 is not in comparable units
 -- Level 0 sky: the game's mud_road_puresky_2kColorGrad cube map, faces converted by

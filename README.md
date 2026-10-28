@@ -31,10 +31,10 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | ShakeScale | 1 | Multiplier on all camera shakes |
 | VignetteEnabled | true | Show the vignette overlay |
 | LensDirtEnabled | true | Show the lens-smudge overlay |
-| LensDirtBase / LensDirtMax | 0.12 / 0.7 | Smudge opacity with no light in view / facing a bright light |
+| LensDirtBase / LensDirtMax | 0 / 0.7 | Smudge opacity with no light in view / facing a bright light |
 | MotionBlurEnabled | true | Blur while the camera turns |
 | MotionBlurAmount | 1 | Source MotionBlurAmount |
 | ConstantBlurScale | 2 | Multiplier on the source depth-of-field blur (always on) |
-| SharpenRimEnabled / SharpenRimStrength / SharpenRimColor | true / 0.85 / light blue-white | Light outline around dark silhouettes from the game's sharpening |
+| SharpenRimEnabled / SharpenRimStrength / SharpenRimColor | false / 0.85 / light blue-white | Light outline around dark silhouettes from the game's sharpening |
 
 Controls match the source: WASD or arrow keys to move, LeftShift to run (only while moving forward), mouse to look, no jump.
