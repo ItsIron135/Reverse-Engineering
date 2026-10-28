@@ -3,7 +3,7 @@
 --     Here its opacity follows how directly the camera faces the sun and nearby lights.
 --   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
 --     defocused by a near-constant amount, so it becomes a constant blur radius. ConstantBlurScale
---     (default 3.83, 5.8 px at 1255 px wide) widens it toward the softer look of the running game.
+--     (default 3.04, 4.6 px at 1255 px wide) widens it toward the softer look of the running game.
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
 --   * sharpening rim: the game's Sharpen2 material adds 5x the luminance difference between each
@@ -142,7 +142,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	local focalLength = (c.DepthOfFieldSensorWidth / 2) / math.tan(math.rad(c.HorizontalFOV / 2))
 	local focus = c.DepthOfFieldFocalDistance * 10
 	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
-	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 3.83)
+	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 3.04)
 	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
