@@ -11,7 +11,7 @@ import zlib
 
 from make_vignette import write_png
 
-BLACK_LEVEL = 40  # cuts the faint texture between smudges, which read as dust
+BLACK_LEVEL = 14
 
 
 def read_png_rgba(path):
@@ -74,8 +74,8 @@ def main():
             # Full-brightness texel colour with its brightness carried by alpha. Sensor noise in
             # the dark background is cut off and its hue pulled to white so it does not tint the view.
             alpha = max(0.0, min(255.0, (lum - BLACK_LEVEL) * 255 / (255 - BLACK_LEVEL)))
-            # Neutral white smudges; the texture's warm tint read as yellow dust
-            colour = [255, 255, 255]
+            mix = min(1.0, lum / 96)
+            colour = [round(w + (c * 255 / peak - w) * mix * 0.6) for c, w in ((r, 255), (g, 250), (b, 236))]
             row += colour + [round(alpha)]
         result.append(row)
     write_png(out, out_w, out_h, result)

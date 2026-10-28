@@ -13,7 +13,7 @@ local IMAGES = {
 	VignetteImage = "rbxassetid://82354150218129", -- assets/vignette.png (UE vignette, intensity 0.32)
 	LensDirtImage = "rbxassetid://70783488855847", -- /Game/Textures/lensDirt11 (bloom dirt mask)
 	CloudImage = "rbxassetid://91504577422474", -- /Game/Textures/Cloud (Map6 cloud material input)
-	LensDirtOverlayImage = "rbxassetid://106558672570043", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
+	LensDirtOverlayImage = "rbxassetid://83251249094103", -- lensDirt11 converted by tools/make_lens_dirt_overlay.py
 }
 
 local MODULES = {
@@ -520,7 +520,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 		-- Glare builds faster than it fades so a light sweeping past still flashes the dirt
 		local rate = target > self.glare and 6 or 3
 		self.glare += (target - self.glare) * math.min(1, dt * rate)
-		local base, peak = self:_setting("LensDirtBase", 0.18), self:_setting("LensDirtMax", 0.7)
+		local base, peak = self:_setting("LensDirtBase", 0.04), self:_setting("LensDirtMax", 0.3)
 		self.dirt.ImageTransparency = 1 - (base + (peak - base) * self.glare)
 	end
 
@@ -986,8 +986,8 @@ for name, value in {
 	ShakeScale = 1,
 	VignetteEnabled = false, -- off by request
 	LensDirtEnabled = true,
-	LensDirtBase = 0.18, -- smudge opacity with no bright light in view
-	LensDirtMax = 0.7, -- opacity when facing the sun or a light
+	LensDirtBase = 0.04, -- faint smudges with no bright light in view
+	LensDirtMax = 0.3, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
 	ConstantBlurScale = 2, -- multiplier on the source depth-of-field blur
