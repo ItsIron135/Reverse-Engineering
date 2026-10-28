@@ -1,4 +1,4 @@
-"""Generate the dreamcore scene's textures: two tileable lawn textures and six seamless sky faces.
+﻿"""Generate the dreamcore scene's textures: two tileable lawn textures and six seamless sky faces.
 
 Sky colour is a function of elevation only, so the faces join without seams; a few small,
 separate cumulus puffs sit just above the horizon on the side faces.
@@ -61,11 +61,12 @@ def add_clouds(img, rng, count):
     for _ in range(count):
         w = rng.uniform(0.05, 0.09) * n  # half width in pixels
         h = w * rng.uniform(0.45, 0.6)
-        cx = rng.uniform(0.15, 0.85) * n
+        cx = rng.uniform(0.22, 0.78) * n  # keeps the widest cloud inside the face
         base = rng.uniform(0.41, 0.47) * n  # just above the horizon row
         octaves = [value_noise(rng, 4 * 2 ** k) for k in range(5)]
         lumps = [(rng.uniform(-0.7, 0.7), rng.uniform(0.35, 0.75)) for _ in range(rng.randint(3, 5))]
-        x0, x1 = int(cx - w * 1.2), int(cx + w * 1.2)
+        # lumps reach |u| = 0.7 + 0.75 * 1.25 plus noise, so scan wide enough not to clip a side
+        x0, x1 = int(cx - w * 1.9), int(cx + w * 1.9)
         y0, y1 = int(base - h * 1.6), int(base + 2)
         for y in range(max(0, y0), min(n, y1)):
             for x in range(max(0, x0), min(n, x1)):
@@ -76,7 +77,7 @@ def add_clouds(img, rng, count):
                 # dome: union of a few lumps along the top
                 dome = max(1 - ((u - lx) / (r * 1.25)) ** 2 - ((v - r * 0.6) / r) ** 2 for lx, r in lumps)
                 dome = min(dome, 1.0) * min(1.0, (v + 0.02) * 12)  # crisp flat base
-                fx, fy = (u + 1.2) / 2.4, (v + 0.1) / 1.8
+                fx, fy = (u + 1.9) / 3.8, (v + 0.1) / 1.8
                 f = sum(octaves[k](fx * 4 * 2 ** k * 0.999, fy * 4 * 2 ** k * 0.999) * 0.5 ** k for k in range(5)) / 1.94
                 d = dome + (f - 0.5) * 0.9
                 alpha = max(0.0, min(1.0, (d - 0.05) / 0.35))

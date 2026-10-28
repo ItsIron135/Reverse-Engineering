@@ -1,4 +1,4 @@
--- Dreamcore scene: huge rolling hills of plain bright green grass under a pure light-blue sky.
+﻿-- Dreamcore scene: huge rolling hills of plain bright green grass under a pure light-blue sky.
 -- Run in Studio's Command Bar in Edit mode. Replaces the current terrain and sky; save the old
 -- scene first (install/SaveScene.luau) if you want it back.
 local Lighting = game:GetService("Lighting")
@@ -7,8 +7,8 @@ local MaterialService = game:GetService("MaterialService")
 -- Textures from tools/make_dream_assets.py: deep-blue gradient sky with a few small clouds
 -- near the horizon, and two tileable lawns with soft light/dark patches.
 local SKY = {
-	SkyboxFt = "rbxassetid://70946309918786", SkyboxBk = "rbxassetid://103123887827375",
-	SkyboxLf = "rbxassetid://83371402069156", SkyboxRt = "rbxassetid://119611060346122",
+	SkyboxFt = "rbxassetid://108658041072874", SkyboxBk = "rbxassetid://121941611023607",
+	SkyboxLf = "rbxassetid://109918862398485", SkyboxRt = "rbxassetid://86276008737282",
 	SkyboxUp = "rbxassetid://111848448630466", SkyboxDn = "rbxassetid://71599569048732",
 }
 -- Photo-based PBR grass (free Creator Store material variant 130374226035894)
@@ -42,7 +42,9 @@ sky.Name = "YHP_DreamSky"
 for face, id in SKY do
 	sky[face] = id
 end
-sky.CelestialBodiesShown = false
+sky.CelestialBodiesShown = true -- sun on, moon hidden
+sky.MoonTextureId = ""
+sky.SunAngularSize = 14
 sky.StarCount = 0
 sky:SetAttribute("YHPManaged", true)
 sky.Parent = Lighting
