@@ -39,22 +39,53 @@ def face(n, direction):
     return img
 
 
+def value_noise(rng, cells):
+    grid = [[rng.random() for _ in range(cells + 2)] for _ in range(cells + 2)]
+
+    def sample(x, y):  # x, y in [0, cells]
+        x0, y0 = int(x), int(y)
+        fx, fy = x - x0, y - y0
+        fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+        a, b = grid[y0][x0], grid[y0][x0 + 1]
+        c, d = grid[y0 + 1][x0], grid[y0 + 1][x0 + 1]
+        return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+
+    return sample
+
+
 def add_clouds(img, rng, count):
+    """Small fair-weather cumulus: a domed envelope with a flat base, eroded by fractal noise,
+    lit from above (bright tops, faint blue-grey undersides)."""
     n = img.size[0]
-    layer = Image.new("L", (n, n), 0)
-    draw = ImageDraw.Draw(layer)
+    px = img.load()
     for _ in range(count):
-        cx = rng.uniform(0.12, 0.88) * n
-        cy = rng.uniform(0.40, 0.47) * n  # just above the horizon (face centre row)
-        w = rng.uniform(0.025, 0.05) * n
-        for _ in range(rng.randint(10, 16)):  # many small soft puffs with a flatter base
-            ox, r = rng.uniform(-w, w), rng.uniform(0.15, 0.4) * w
-            oy = -abs(rng.gauss(0, 0.35)) * w * 0.7
-            shade = rng.randint(150, 255)
-            draw.ellipse((cx + ox - r, cy + oy - r, cx + ox + r, min(cy + oy + r, cy + w * 0.12)), fill=shade)
-    layer = layer.filter(ImageFilter.GaussianBlur(n / 160))
-    white = Image.new("RGB", (n, n), (250, 252, 255))
-    img.paste(white, (0, 0), layer.point(lambda a: min(255, int(a * 1.25))))
+        w = rng.uniform(0.05, 0.09) * n  # half width in pixels
+        h = w * rng.uniform(0.45, 0.6)
+        cx = rng.uniform(0.15, 0.85) * n
+        base = rng.uniform(0.41, 0.47) * n  # just above the horizon row
+        octaves = [value_noise(rng, 4 * 2 ** k) for k in range(5)]
+        lumps = [(rng.uniform(-0.7, 0.7), rng.uniform(0.35, 0.75)) for _ in range(rng.randint(3, 5))]
+        x0, x1 = int(cx - w * 1.2), int(cx + w * 1.2)
+        y0, y1 = int(base - h * 1.6), int(base + 2)
+        for y in range(max(0, y0), min(n, y1)):
+            for x in range(max(0, x0), min(n, x1)):
+                u = (x - cx) / w  # -1..1
+                v = (base - y) / h  # 0 at base, 1 at the top of the dome
+                if v < -0.02:
+                    continue
+                # dome: union of a few lumps along the top
+                dome = max(1 - ((u - lx) / (r * 1.25)) ** 2 - ((v - r * 0.6) / r) ** 2 for lx, r in lumps)
+                dome = min(dome, 1.0) * min(1.0, (v + 0.02) * 12)  # crisp flat base
+                fx, fy = (u + 1.2) / 2.4, (v + 0.1) / 1.8
+                f = sum(octaves[k](fx * 4 * 2 ** k * 0.999, fy * 4 * 2 ** k * 0.999) * 0.5 ** k for k in range(5)) / 1.94
+                d = dome + (f - 0.5) * 0.9
+                alpha = max(0.0, min(1.0, (d - 0.05) / 0.35))
+                if alpha <= 0:
+                    continue
+                light = 0.80 + 0.20 * min(1.0, max(0.0, v * 1.3 + (f - 0.5)))
+                cloud = (round(236 * light + 19), round(240 * light + 15), round(248 * light + 7))
+                bg = px[x, y]
+                px[x, y] = tuple(round(bg[i] * (1 - alpha) + cloud[i] * alpha) for i in range(3))
     return img
 
 

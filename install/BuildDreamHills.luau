@@ -7,26 +7,30 @@ local MaterialService = game:GetService("MaterialService")
 -- Textures from tools/make_dream_assets.py: deep-blue gradient sky with a few small clouds
 -- near the horizon, and two tileable lawns with soft light/dark patches.
 local SKY = {
-	SkyboxFt = "rbxassetid://101108003078443", SkyboxBk = "rbxassetid://99055442711002",
-	SkyboxLf = "rbxassetid://95078890060473", SkyboxRt = "rbxassetid://122857354846539",
+	SkyboxFt = "rbxassetid://70946309918786", SkyboxBk = "rbxassetid://103123887827375",
+	SkyboxLf = "rbxassetid://83371402069156", SkyboxRt = "rbxassetid://119611060346122",
 	SkyboxUp = "rbxassetid://111848448630466", SkyboxDn = "rbxassetid://71599569048732",
 }
-local LAWN_A = "rbxassetid://113694141862193"
-local LAWN_B = "rbxassetid://82569286786333"
+-- Photo-based PBR grass (free Creator Store material variant 130374226035894)
+local GRASS = {
+	ColorMap = "rbxassetid://13554789665",
+	NormalMap = "rbxassetid://13554789669",
+	RoughnessMap = "rbxassetid://13554789647",
+}
 local HALF, BOTTOM, TOP, RES, CHUNK, SEED = 2000, -120, 124, 4, 128, 17.3
 
--- Lawn textures on Ground and Mud, which (unlike Grass) never grow decoration blades. Two
--- variants painted in large patches give the hills slight colour variation.
-for base, info in { [Enum.Material.Ground] = { "DreamGrass", LAWN_A }, [Enum.Material.Mud] = { "DreamGrassB", LAWN_B } } do
-	local variant = MaterialService:FindFirstChild(info[1]) or Instance.new("MaterialVariant")
-	variant.Name = info[1]
-	variant.BaseMaterial = base
-	variant.ColorMap = info[2]
-	variant.StudsPerTile = 40
-	variant.Parent = MaterialService
-	MaterialService:SetBaseMaterialOverride(base, info[1])
-	workspace.Terrain:SetMaterialColor(base, Color3.new(1, 1, 1))
+-- Grass on Ground, which (unlike the Grass material) never grows decoration blades. A single
+-- material keeps far terrain LOD green; the hills' lighting supplies the colour variation.
+local variant = MaterialService:FindFirstChild("DreamGrass") or Instance.new("MaterialVariant")
+variant.Name = "DreamGrass"
+variant.BaseMaterial = Enum.Material.Ground
+for key, id in GRASS do
+	variant[key] = id
 end
+variant.StudsPerTile = 8
+variant.Parent = MaterialService
+MaterialService:SetBaseMaterialOverride(Enum.Material.Ground, "DreamGrass")
+workspace.Terrain:SetMaterialColor(Enum.Material.Ground, Color3.new(1, 1, 1))
 
 for _, child in Lighting:GetChildren() do
 	if child:IsA("Sky") or child:IsA("Atmosphere") or child:IsA("Clouds") then
@@ -43,19 +47,19 @@ sky.StarCount = 0
 sky:SetAttribute("YHPManaged", true)
 sky.Parent = Lighting
 
-Lighting.ClockTime = 13
+Lighting.ClockTime = 16.3 -- low enough sun to shade the hills
 Lighting.GeographicLatitude = 30
-Lighting.Brightness = 2.2
+Lighting.Brightness = 2.6
 Lighting.ExposureCompensation = 0
-Lighting.Ambient = Color3.fromRGB(110, 130, 150)
-Lighting.OutdoorAmbient = Color3.fromRGB(150, 185, 210)
-Lighting.EnvironmentDiffuseScale = 1
-Lighting.EnvironmentSpecularScale = 0.3
+Lighting.Ambient = Color3.fromRGB(70, 80, 95)
+Lighting.OutdoorAmbient = Color3.fromRGB(105, 125, 145)
+Lighting.EnvironmentDiffuseScale = 0.6
+Lighting.EnvironmentSpecularScale = 0.1
 Lighting.ColorShift_Top = Color3.fromRGB(255, 255, 250)
 Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
 local grade = Lighting:FindFirstChild("YHP_ColorGrade")
 if grade then
-	grade.Brightness, grade.Contrast, grade.Saturation, grade.TintColor = 0, 0.05, -0.12, Color3.new(1, 1, 1)
+	grade.Brightness, grade.Contrast, grade.Saturation, grade.TintColor = 0, 0.1, -0.2, Color3.fromRGB(255, 251, 238)
 end
 local bloom = Lighting:FindFirstChild("YHP_Bloom")
 if bloom then
@@ -66,11 +70,6 @@ local function height(x, z)
 	return 95 * math.noise(x / 650, SEED, z / 650)
 		+ 30 * math.noise(x / 260, SEED + 5.1, z / 260)
 		+ 6 * math.noise(x / 120, SEED + 9.7, z / 120)
-end
-
-local function patch(x, z)
-	local n = math.noise(x / 220, SEED + 31.7, z / 220) + 0.4 * math.noise(x / 90, SEED + 44.1, z / 90)
-	return n > 0.12 and Enum.Material.Mud or Enum.Material.Ground
 end
 
 local terrain = workspace.Terrain
@@ -87,7 +86,7 @@ for cx = -HALF, HALF - 1, CHUNK do
 			end
 			for iz = 1, n do
 				local x, z = cx + (ix - 0.5) * RES, cz + (iz - 0.5) * RES
-				local top, material = height(x, z), patch(x, z)
+				local top, material = height(x, z), Enum.Material.Ground
 				for iy = 1, ny do
 					local fill = math.clamp((top - (BOTTOM + (iy - 1) * RES)) / RES, 0, 1)
 					if fill > 0 then

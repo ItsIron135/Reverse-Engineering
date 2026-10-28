@@ -5,19 +5,19 @@ return {
 	CentimetersPerStud = 28,
 
 	-- BP_FirstPersonCharacter CDO
-	WalkSpeed = 150,
-	RunSpeedMult = 2,
+	WalkSpeed = 225, -- source 150; sped up for the dreamcore map
+	RunSpeedMult = 1.8, -- source 2
 	CameraSensitivity = 0.75,
 	CameraSensitivityMult = 1, -- BeginPlay overwrites this from Mouse.sav when it exists
 	CameraTiltRecover = 25,
 	CameraMaxTilt = 5,
-	StepDist = 100,
+	StepDist = 130, -- source 100; keeps footfall cadence natural at the faster speeds
 	StepTraceRange = 150,
 	AmbientShakeWait = 300,
 
 	-- CharacterMovementComponent deltas
-	MaxAcceleration = 256,
-	BrakingDecelerationWalking = 512,
+	MaxAcceleration = 384, -- source 256, scaled with WalkSpeed
+	BrakingDecelerationWalking = 768, -- source 512
 	GroundFriction = 0.5,
 	BrakingFrictionFactor = 0,
 	JumpZVelocity = 0,
