@@ -410,7 +410,7 @@ return Movement
 --     Here its opacity follows how directly the camera faces the sun and nearby lights.
 --   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
 --     defocused by a near-constant amount, so it becomes a constant blur radius. ConstantBlurScale
---     (default 4.23, 6.4 px at 1255 px wide) widens it toward the softer look of the running game.
+--     (default 3.83, 5.8 px at 1255 px wide) widens it toward the softer look of the running game.
 --   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
 --     its radius follows the camera's rotation using Unreal's velocity scaling.
 --   * sharpening rim: the game's Sharpen2 material adds 5x the luminance difference between each
@@ -549,7 +549,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	local focalLength = (c.DepthOfFieldSensorWidth / 2) / math.tan(math.rad(c.HorizontalFOV / 2))
 	local focus = c.DepthOfFieldFocalDistance * 10
 	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
-	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 4.23)
+	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 3.83)
 	local motionRadius = 0
 	local rotation = pose.Rotation
 	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
@@ -562,7 +562,7 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	end
 	self.lastRotation = rotation
 	-- Added rather than combined in quadrature so turning stays clearly blurrier than standing still
-	self.blur.Size = math.min(focusRadius + motionRadius * self:_setting("MotionBlurWeight", 1), 56)
+	self.blur.Size = math.min(focusRadius + motionRadius * self:_setting("MotionBlurWeight", 0.7), 56)
 	self.blur.Enabled = true
 end
 
@@ -991,8 +991,8 @@ for name, value in {
 	LensDirtMax = 0.15, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	ConstantBlurScale = 4.23, -- multiplier on the source depth-of-field blur (6.4 px at 1255 px wide)
-	MotionBlurWeight = 1, -- share of the motion-blur radius added on top of the constant blur
+	ConstantBlurScale = 3.83, -- multiplier on the source depth-of-field blur (5.8 px at 1255 px wide)
+	MotionBlurWeight = 0.7, -- share of the motion-blur radius added on top of the constant blur
 	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
 	SharpenRimColor = Color3.fromRGB(220, 232, 255),

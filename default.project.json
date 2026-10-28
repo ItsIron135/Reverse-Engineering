@@ -21,8 +21,8 @@
           "LensDirtMax": 0.15,
           "MotionBlurEnabled": true,
           "MotionBlurAmount": 1,
-          "ConstantBlurScale": 4.23,
-          "MotionBlurWeight": 1,
+          "ConstantBlurScale": 3.83,
+          "MotionBlurWeight": 0.7,
           "SharpenRimEnabled": false,
           "SharpenRimStrength": 0.85
         }
