@@ -29,9 +29,9 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | SourceMovement | true | Source walk/run speeds and acceleration; false keeps the Humanoid's WalkSpeed |
 | MouseSensitivityScale | 1 | Multiplier on the source's 0.131°/pixel |
 | ShakeScale | 1 | Multiplier on all camera shakes |
-| VignetteEnabled | true | Show the vignette overlay |
+| VignetteEnabled | false | Show the vignette overlay |
 | LensDirtEnabled | true | Show the lens-smudge overlay |
-| LensDirtBase / LensDirtMax | 0 / 0.7 | Smudge opacity with no light in view / facing a bright light |
+| LensDirtBase / LensDirtMax | 0.18 / 0.7 | Smudge opacity with no light in view / facing a bright light |
 | MotionBlurEnabled | true | Blur while the camera turns |
 | MotionBlurAmount | 1 | Source MotionBlurAmount |
 | ConstantBlurScale | 2 | Multiplier on the source depth-of-field blur (always on) |
