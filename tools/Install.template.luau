@@ -88,7 +88,8 @@ for name, value in {
 	LensDirtMax = 0.15, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
 	MotionBlurAmount = 1, -- source MotionBlurAmount
-	ConstantBlurScale = 3.5, -- multiplier on the source depth-of-field blur
+	ConstantBlurScale = 4.5, -- multiplier on the source depth-of-field blur
+	MotionBlurWeight = 1, -- share of the motion-blur radius added on top of the constant blur
 	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
 	SharpenRimColor = Color3.fromRGB(220, 232, 255),
@@ -177,7 +178,14 @@ sky.SkyboxDn = "rbxassetid://102060416831931"
 sky.CelestialBodiesShown = false
 sky.StarCount = 0
 
-for _, effect in { grade, bloom, sky } do
+local depth = Instance.new("DepthOfFieldEffect")
+depth.Name = "YHP_LensDepth"
+depth.FocusDistance = 4
+depth.InFocusRadius = 10
+depth.NearIntensity = 0
+depth.FarIntensity = 0.35 -- distance softness of a cheap camera
+
+for _, effect in { grade, bloom, depth, sky } do
 	effect:SetAttribute("YHPManaged", true)
 	effect.Parent = Lighting
 end
