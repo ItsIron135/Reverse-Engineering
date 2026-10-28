@@ -67,9 +67,8 @@ if bloom then
 end
 
 local function height(x, z)
-	return 95 * math.noise(x / 650, SEED, z / 650)
-		+ 30 * math.noise(x / 260, SEED + 5.1, z / 260)
-		+ 6 * math.noise(x / 120, SEED + 9.7, z / 120)
+	-- Only broad, smooth swells: no small-scale octave, so the slopes have no bumps
+	return 95 * math.noise(x / 650, SEED, z / 650) + 22 * math.noise(x / 320, SEED + 5.1, z / 320)
 end
 
 local terrain = workspace.Terrain

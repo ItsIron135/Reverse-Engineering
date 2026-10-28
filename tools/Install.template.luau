@@ -87,9 +87,10 @@ for name, value in {
 	LensDirtBase = 0.03, -- faint smudges with no bright light in view
 	LensDirtMax = 0.15, -- opacity when facing the sun or a light
 	MotionBlurEnabled = true,
-	MotionBlurAmount = 1, -- source MotionBlurAmount
+	MotionBlurStart = 0.6, -- px of blur the moment the view moves
+	MotionBlurPerDegree = 0.012, -- extra px per degree/second of turning
+	MotionBlurMax = 3, -- cap on the turning blur, px (at 1255 px wide)
 	ConstantBlurScale = 3.04, -- multiplier on the source depth-of-field blur (4.6 px at 1255 px wide)
-	MotionBlurWeight = 0.7, -- share of the motion-blur radius added on top of the constant blur
 	SharpenRimEnabled = false, -- bright rim from the game's Sharpen2 filter (off by request)
 	SharpenRimStrength = 0.85,
 	SharpenRimColor = Color3.fromRGB(220, 232, 255),

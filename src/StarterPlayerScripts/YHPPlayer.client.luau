@@ -237,8 +237,11 @@ local function step(dt)
 	local look = mouse * Config.MouseAxisSensitivity
 	-- Gamepad_Right2D is consumed once per source frame; normalised here to 60 Hz
 	look += Vector2.new(stick.X, stick.Y) * dt * 60
-	controlYaw = Unreal.NormalizeAxis(controlYaw + look.X * sensitivity * Config.InputYawScale)
+	local yawStep = look.X * sensitivity * Config.InputYawScale
+	local previousPitch = controlPitch
+	controlYaw = Unreal.NormalizeAxis(controlYaw + yawStep)
 	controlPitch = math.clamp(controlPitch + look.Y * sensitivity * Config.InputPitchScale, Config.ViewPitchMin, Config.ViewPitchMax)
+	local lookSpeed = math.sqrt(yawStep ^ 2 + (controlPitch - previousPitch) ^ 2) / math.max(dt, 1e-3)
 	cameraTilt += look.X
 
 	-- IA_Move / IA_Run
@@ -337,7 +340,7 @@ local function step(dt)
 	local image = YHP:GetAttribute("VignetteImage")
 	vignette.Visible = attribute("VignetteEnabled", true) and image ~= nil and image ~= ""
 	vignette.Image = image or ""
-	lens:Update(dt, camera, pose)
+	lens:Update(dt, camera, pose, lookSpeed)
 end
 
 RunService:BindToRenderStep("YHPPlayer", Enum.RenderPriority.Camera.Value + 1, step)

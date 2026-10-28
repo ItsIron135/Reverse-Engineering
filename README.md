@@ -33,7 +33,7 @@ Attributes on `ReplicatedStorage.YHP`, editable live during Play:
 | LensDirtEnabled | true | Show the lens-smudge overlay |
 | LensDirtBase / LensDirtMax | 0.03 / 0.15 | Smudge opacity with no light in view / facing a bright light |
 | MotionBlurEnabled | true | Blur while the camera turns |
-| MotionBlurAmount | 1 | Source MotionBlurAmount |
+| MotionBlurStart / MotionBlurPerDegree / MotionBlurMax | 0.6 / 0.012 / 3 | Turn blur: px as soon as the view moves, extra px per degree/second, hard cap |
 | ConstantBlurScale | 3.04 | Multiplier on the source depth-of-field blur (always on) |
 | SharpenRimEnabled / SharpenRimStrength / SharpenRimColor | false / 0.85 / light blue-white | Light outline around dark silhouettes from the game's sharpening |
 

@@ -4,8 +4,9 @@
 --   * depth of field: focus at 40 cm with a 30 mm sensor leaves everything past arm's length
 --     defocused by a near-constant amount, so it becomes a constant blur radius. ConstantBlurScale
 --     (default 3.04, 4.6 px at 1255 px wide) widens it toward the softer look of the running game.
---   * motion blur: Unreal blurs along per-pixel motion. Roblox only has a uniform BlurEffect, so
---     its radius follows the camera's rotation using Unreal's velocity scaling.
+--   * look blur: Roblox only has a uniform BlurEffect, so turning the camera adds blur on top of the
+--     constant softness: a small amount the moment the view moves, growing with turn speed, and
+--     never more than MotionBlurMax pixels.
 --   * sharpening rim: the game's Sharpen2 material adds 5x the luminance difference between each
 --     pixel and four neighbours 0.005 of the screen away, which draws a bright rim on the sky side
 --     of every dark silhouette. A Highlight on the whole workspace outlines that same silhouette.
@@ -45,7 +46,7 @@ function LensEffects.new(settings: Instance, gui: ScreenGui, config)
 		glare = 0,
 		lights = {},
 		scanTimer = 0,
-		lastRotation = nil,
+		motionBlur = 0,
 	}, LensEffects)
 end
 
@@ -102,7 +103,8 @@ function LensEffects:_glare(dt: number, pose: CFrame): number
 	return math.clamp(glare, 0, 1)
 end
 
-function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
+-- lookSpeed: how fast the player is turning the view, in degrees per second
+function LensEffects:Update(dt: number, camera: Camera, pose: CFrame, lookSpeed: number?)
 	-- Lens dirt
 	local image = self.settings:GetAttribute("LensDirtOverlayImage")
 	local dirtOn = self:_setting("LensDirtEnabled", true) and image ~= nil and image ~= ""
@@ -143,26 +145,24 @@ function LensEffects:Update(dt: number, camera: Camera, pose: CFrame)
 	local focus = c.DepthOfFieldFocalDistance * 10
 	local coc = focalLength * focalLength / (c.DepthOfFieldFstop * (focus - focalLength))
 	local focusRadius = coc / 2 / c.DepthOfFieldSensorWidth * width * self:_setting("ConstantBlurScale", 3.04)
-	local motionRadius = 0
-	local rotation = pose.Rotation
-	if self.lastRotation and dt > 0 and self:_setting("MotionBlurEnabled", true) then
-		local _, angle = (self.lastRotation:Inverse() * rotation):ToAxisAngle()
-		local pixelsPerRadian = width / (2 * math.tan(math.rad(c.HorizontalFOV / 2)))
-		-- Unreal scales velocity to MotionBlurTargetFPS and blurs half of it each way.
-		local pixelsPerSecond = math.abs(angle) / dt * pixelsPerRadian
-		motionRadius = 0.5 * self:_setting("MotionBlurAmount", c.MotionBlurAmount) * pixelsPerSecond / c.MotionBlurTargetFPS
-		motionRadius = math.min(motionRadius, width * 0.5 * c.MotionBlurMax / 100)
+	-- Look blur in pixels at a 1255 px wide view, scaled to the actual width
+	local target = 0
+	local speed = lookSpeed or 0
+	if self:_setting("MotionBlurEnabled", true) and speed > 0.5 then
+		target = self:_setting("MotionBlurStart", 0.6) + speed * self:_setting("MotionBlurPerDegree", 0.012)
+		target = math.min(target, self:_setting("MotionBlurMax", 3))
 	end
-	self.lastRotation = rotation
-	-- Added rather than combined in quadrature so turning stays clearly blurrier than standing still
-	self.blur.Size = math.min(focusRadius + motionRadius * self:_setting("MotionBlurWeight", 0.7), 56)
+	-- Rises quickly when the view starts moving, settles a little slower when it stops
+	local rate = target > self.motionBlur and 25 or 10
+	self.motionBlur += (target - self.motionBlur) * math.min(1, dt * rate)
+	self.blur.Size = math.min(focusRadius + self.motionBlur * width / 1255, 56)
 	self.blur.Enabled = true
 end
 
 function LensEffects:Release()
 	self.dirt.Visible = false
 	self.rim.Enabled = false
-	self.lastRotation = nil
+	self.motionBlur = 0
 	if self.blur then
 		self.blur.Enabled = false
 	end
